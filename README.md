@@ -9,7 +9,7 @@
 * [Commands](#Commands)
 * [Support](#support)
 * [Report bugs](#Report-bugs)
-* [Special thanks to](#Acknowledgments)
+* [Acknowledgments](#Acknowledgments)
 
 ## Built With
 
