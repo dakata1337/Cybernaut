@@ -1,0 +1,5 @@
+Cybernaut/bin/*
+Cybernaut/obj/*
+*.json
+*.ini
+.vs/*
