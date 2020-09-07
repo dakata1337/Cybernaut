@@ -6,6 +6,8 @@ namespace Cybernaut.DataStructs
     {
         public string Prefix { get; set; }
         public List<ulong> whitelistedChannels { get; set; }
+        public ulong AuthRole { get; set; }
+        public bool AuthEnabled { get; set; }
         public int volume { get; set; }
         public bool islooping { get; set; }
         public ulong voiceChannelID { get; set; }

@@ -2,6 +2,8 @@
 using Cybernaut.Handlers;
 using Discord;
 using Discord.Commands;
+using Discord.Rest;
+using Discord.WebSocket;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
@@ -62,7 +64,7 @@ namespace Cybernaut.Services
                 string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
                 File.WriteAllText(configFile, output, new UTF8Encoding(false));
             }
-            return await EmbedHandler.CreateBasicEmbed("Configuration changed.",  autoWhitelist == true ? $"The prefix was successfully changed to \u0022{prefix}\u0022.\nAdded {context.Channel.Name} to the channel whitelist." : $"The prefix was successfully changed to \u0022{prefix}\u0022.", Color.Blue);
+            return await EmbedHandler.CreateBasicEmbed("Configuration Changed.",  autoWhitelist == true ? $"The prefix was successfully changed to \u0022{prefix}\u0022.\nAdded {context.Channel.Name} to the channel whitelist." : $"The prefix was successfully changed to \u0022{prefix}\u0022.", Color.Blue);
         }
         
         public async Task<Embed> WhiteList(SocketCommandContext context, ulong channelID, string arg)
@@ -70,13 +72,12 @@ namespace Cybernaut.Services
             string configFile = $@"{GlobalData.Config.ConfigLocation}\{context.Guild.Id}.json";
 
             if (!File.Exists(configFile))
-            {
-                return await EmbedHandler.CreateBasicEmbed("Configuration needed!", $"Please type `{GlobalData.Config.DefaultPrefix}prefix YourPrefixHere` to configure the bot.", Color.Orange);
-            }
+                return await EmbedHandler.CreateBasicEmbed("Configuration Needed!", $"Please type `{GlobalData.Config.DefaultPrefix}prefix YourPrefixHere` to configure the bot.", Color.Orange);
 
-            var json = string.Empty;
+            if (context.Guild.GetChannel(channelID) != context.Guild.GetTextChannel(channelID)) //Checks if the selected channel is text channel
+                return await EmbedHandler.CreateBasicEmbed("Configuration Error.", $"{context.Guild.GetChannel(channelID)} is not a text channel.", Color.Orange);
 
-            json = File.ReadAllText(configFile);
+            var json = File.ReadAllText(configFile);
             dynamic jsonObj = JsonConvert.DeserializeObject(json);
 
             ulong[] ogArray = jsonObj.whitelistedChannels.ToObject<ulong[]>();
@@ -109,10 +110,14 @@ namespace Cybernaut.Services
                 File.WriteAllText(configFile, output);
                 #endregion
 
-                return await EmbedHandler.CreateBasicEmbed("Configuration changed.", $"{context.Guild.GetChannel(channelID)} was whitelisted.", Color.Blue);
+                return await EmbedHandler.CreateBasicEmbed("Configuration Changed.", $"{context.Guild.GetChannel(channelID)} was whitelisted.", Color.Blue);
             }
             else if (arg == "remove")
             {
+                #region Remove code
+                if (context.Guild.GetChannel(channelID) != context.Guild.GetTextChannel(channelID)) //Checks if the selected channel is text channel
+                    return await EmbedHandler.CreateBasicEmbed("Configuration Error.", $"{context.Guild.GetChannel(channelID)} is not a text channel.", Color.Orange);
+
                 var list = new List<ulong>(ogArray);
                 if(list.Count == 1)
                 {
@@ -126,11 +131,13 @@ namespace Cybernaut.Services
 
                 string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
                 File.WriteAllText(configFile, output);
-                return await EmbedHandler.CreateBasicEmbed("Configuration changed.", $"{context.Guild.GetChannel(channelID)} was removed from the whitelist.", Color.Blue);
+                #endregion
+
+                return await EmbedHandler.CreateBasicEmbed("Configuration Changed.", $"{context.Guild.GetChannel(channelID)} was removed from the whitelist.", Color.Blue);
             }
             else
             {
-                return await EmbedHandler.CreateErrorEmbed("Configuration error.", $"{arg} is not a valid argument. Please type {jObj["Prefix"]}commands for help.");
+                return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"{arg} is not a valid argument. Please type {jObj["Prefix"]}commands for help.");
             }
         }
 
@@ -138,6 +145,8 @@ namespace Cybernaut.Services
         {
             Prefix = prefix == null ? "!" : prefix,
             whitelistedChannels = new List<ulong>(),
+            AuthRole = 0,
+            AuthEnabled = false,
             volume = 70,
             islooping = false,
             voiceChannelID = 0

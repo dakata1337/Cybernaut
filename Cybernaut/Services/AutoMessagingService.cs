@@ -6,15 +6,63 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Discord.Commands;
 using System;
+using Discord.Rest;
+using System.Linq;
+using System.IO;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Threading;
 
 namespace Cybernaut.Services
 {
     public class AutoMessagingService
     {
-        public async Task OnUserJoin(SocketGuildUser user)
+        public async Task<Task> OnUserJoin(SocketGuildUser user)
         {
-            var channel = user.Guild.SystemChannel as SocketTextChannel; //Gets the channel to send the message in
-            await channel.SendMessageAsync($"Welcome {user.Mention} to {channel.Guild.Name}"); //Welcomes the new user
+            var t = new Thread(() => UserAuth(user));
+            t.Start();
+
+            return Task.CompletedTask;
+        }
+
+        public async Task<Task> UserAuth(SocketGuildUser user)
+        {
+            #region Reading config
+            string configFile = $@"{GlobalData.Config.ConfigLocation}\{user.Guild.Id}.json";
+
+            var json = File.ReadAllText(configFile);
+            var jObj = JsonConvert.DeserializeObject<JObject>(json);
+            #endregion
+
+            if (jObj["AuthEnabled"].ToObject<bool>() == false) //Checks if auth is enabled
+                return Task.CompletedTask;
+
+            await user.GetOrCreateDMChannelAsync();
+
+            await user.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed($"I'm glad u came!", $"Welcome to {user.Guild.Name}", Color.Blue));
+
+            IMessage message = await user.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed($"Are you a robot?", $"Please confirm that you are not a robot 🤖", Color.Blue));
+
+            var checkEmoji = new Emoji("✅");
+            await message.AddReactionAsync(checkEmoji);
+
+            IRole role = user.Guild.GetRole((ulong)jObj["AuthRole"]);
+            bool loop = true;
+            while (loop)
+            {
+                var reactedUsers = await message.GetReactionUsersAsync(checkEmoji, 1).FlattenAsync();
+                foreach (var item in reactedUsers)
+                {
+                    if (!item.IsBot && item.Id == user.Id)
+                    {
+                        await user.AddRoleAsync(role);
+                        await message.DeleteAsync();
+                        loop = false;
+                        break;
+                    }
+                }
+            }
+            return Task.CompletedTask;
         }
 
         public async Task OnGuildJoin(SocketGuild guild)

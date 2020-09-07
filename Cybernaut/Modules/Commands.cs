@@ -38,13 +38,25 @@ namespace Cybernaut.Modules
             await ReplyAsync(embed: await commandsService.GetInvite(Context));
         }
 
-        /* Used for testing purposes
-        [Command("join")]
-        public async Task FakeJoin()
+        [Command("auth")]
+        public async Task Authentication(string arg, IRole role = null)
         {
-            await autoMessagingService.OnGuildJoin(Context.Guild);
+            await ReplyAsync(embed: await commandsService.Authentication(arg, role, Context));
         }
-        */
+
+        /* Used for testing purposes */
+        //[Command("join")]
+        //public async Task FakeJoin()
+        //{
+        //    await autoMessagingService.OnGuildJoin(Context.Guild);
+        //}
+
+        //[Command("userjoin")]
+        //public async Task OnUserJoin(SocketGuildUser user)
+        //{
+        //    await autoMessagingService.OnUserJoin(user);
+        //}
+
 
         /*Music Commands*/
 
