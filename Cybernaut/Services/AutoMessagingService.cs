@@ -39,7 +39,7 @@ namespace Cybernaut.Services
 
             await user.GetOrCreateDMChannelAsync();
 
-            await user.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed($"I'm glad u came!", $"Welcome to {user.Guild.Name}", Color.Blue));
+            await user.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed($"I'm glad you came!", $"Welcome to {user.Guild.Name}", Color.Blue));
 
             IMessage message = await user.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed($"Are you a robot?", $"Please confirm that you are not a robot 🤖", Color.Blue));
 
