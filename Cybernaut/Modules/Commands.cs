@@ -14,7 +14,7 @@ namespace Cybernaut.Modules
         AutoMessagingService autoMessagingService = new AutoMessagingService(); //Used for testing purposes 
         CommandsService commandsService = new CommandsService();
 
-        [Command("test")]
+        [Command("status")]
         public async Task JoinAndPlay()
         {
             await ReplyAsync(embed: await EmbedHandler.DisplayInfoAsync(Context, Color.Purple));
