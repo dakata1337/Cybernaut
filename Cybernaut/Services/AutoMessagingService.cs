@@ -33,9 +33,13 @@ namespace Cybernaut.Services
             var json = File.ReadAllText(configFile);
             var jObj = JsonConvert.DeserializeObject<JObject>(json);
             #endregion
+            IRole role = user.Guild.GetRole((ulong)jObj["AuthRole"]);
 
             if (jObj["AuthEnabled"].ToObject<bool>() == false) //Checks if auth is enabled
+            {
+                await user.AddRoleAsync(role);
                 return Task.CompletedTask;
+            }
 
             await user.GetOrCreateDMChannelAsync();
 
@@ -46,7 +50,6 @@ namespace Cybernaut.Services
             var checkEmoji = new Emoji("✅");
             await message.AddReactionAsync(checkEmoji);
 
-            IRole role = user.Guild.GetRole((ulong)jObj["AuthRole"]);
             bool loop = true;
             while (loop)
             {
