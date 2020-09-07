@@ -49,9 +49,9 @@ NOTE: The first time you start the bot will create a config file which you need 
 * Pause - Pause the music ```Usage: !pause```
 * Resume - Resumes the music ```Usage: !resume ```
 * Auth:
--enable - Enables on join user authentication ```Usage: !auth enable ```&nbsp;
--disable - Disables on join user authentication ```Usage: !auth disable ```&nbsp;
--role - The role that is given when authenticated ```Usage: !auth role @role ```&nbsp;
+-enable - Enables on join user authentication ```Usage: !auth enable ```<br/>
+-disable - Disables on join user authentication ```Usage: !auth disable ```<br/>
+-role - The role that is given when authenticated ```Usage: !auth role @role ```<br/>
 
 ## Support
 If you have any questions feel free to join my discord and ask your question in the chat room called "Questions" in the category "Programing"
