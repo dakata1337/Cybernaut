@@ -48,7 +48,7 @@ NOTE: The first time you start the bot will create a config file which you need 
 * Volume - Set the bot music volume ```Usage: !volume (from 1% to 150%)```
 * Pause - Pause the music ```Usage: !pause```
 * Resume - Resumes the music ```Usage: !resume ```
-* Auth:
+* Auth:<br/>
 -enable - Enables on join user authentication ```Usage: !auth enable ```<br/>
 -disable - Disables on join user authentication ```Usage: !auth disable ```<br/>
 -role - The role that is given when authenticated ```Usage: !auth role @role ```<br/>
