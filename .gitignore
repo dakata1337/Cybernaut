@@ -3,3 +3,4 @@ Cybernaut/obj/*
 *.json
 *.ini
 .vs/*
+git-ignored/*
