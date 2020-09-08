@@ -83,7 +83,7 @@ namespace Cybernaut.Services
             {
                 Name = "**NOTE**",
                 Value = "By default, the channel in which you will type the prefix command, will be whitelisted. " +
-                "If you want to whitelist another channel type `!whitelistadd #your-channel` (Must be tagged).",
+                "If you want to whitelist another channel type `!whitelist add #your-channel` (Must be tagged).",
                 IsInline = false
             }); 
 
@@ -101,8 +101,10 @@ namespace Cybernaut.Services
 
         public async Task UserBanned(SocketUser user, SocketGuild guild)
         {
-            var channel = guild.SystemChannel as SocketTextChannel; //Gets the channel to send the message in
-            await channel.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed("User Banned.", $"{user.Mention} was banned from the server!", Color.Red)); //Sends the Embed
+            await user.GetOrCreateDMChannelAsync();
+            var ban = await guild.GetBanAsync(user);
+            await user.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed("User Banned.", ban.Reason == null ? $"You have been banned from {guild.Name}. " +
+                $"Reason: Not specified" : $"You have been banned from {guild.Name}. Reason: {ban.Reason}", Color.Red));
         }
 
 
