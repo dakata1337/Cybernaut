@@ -180,7 +180,7 @@ namespace Cybernaut.Services
             //Throws the error in discord
             catch (Exception ex)
             {
-                return await EmbedHandler.CreateErrorEmbed("Music, Play", ex.Message.Contains("was not present in the dictionary.") ? $"You can't use this command because you aren't in the same channel as the bot. Type {GlobalData.Config.DefaultPrefix}Join and then retry." : ex.Message);
+                return await EmbedHandler.CreateErrorEmbed("Music, Play", ex.Message.Contains("was not present in the dictionary.") ? $"You can't use this command because you aren't in the same channel as the bot." : ex.Message);
             }
             #endregion
         }
@@ -253,7 +253,7 @@ namespace Cybernaut.Services
                 /* Get The Player and make sure it isn't null. */
                 var player = _lavaNode.GetPlayer(guild);
                 if (player == null)
-                    return await EmbedHandler.CreateErrorEmbed("Music", $"Could not aquire player.\nAre you using the bot right now? check{GlobalData.Config.DefaultPrefix}Help for info on how to use the bot.");
+                    return await EmbedHandler.CreateErrorEmbed("Music", $"Could not aquire player.\nAre you using the bot right now? ");
 
                 if (player.PlayerState is PlayerState.Playing)
                 {
@@ -310,7 +310,7 @@ namespace Cybernaut.Services
                 var player = _lavaNode.GetPlayer(guild);
                 /* Check if the player exists */
                 if (player == null)
-                    return await EmbedHandler.CreateErrorEmbed("Music, Skip", $"Could not aquire player.\nAre you using the bot right now? check{GlobalData.Config.DefaultPrefix}Help for info on how to use the bot.");
+                    return await EmbedHandler.CreateErrorEmbed("Music, Skip", $"Could not aquire player.\nAre you using the bot right now?");
                 /* Check The queue, if it is less than one (meaning we only have the current song available to skip) it wont allow the user to skip.
                      User is expected to use the Stop command if they're only wanting to skip the current song. */
                 if (player.Queue.Count < 1)
@@ -362,7 +362,7 @@ namespace Cybernaut.Services
                 var player = _lavaNode.GetPlayer(guild);
 
                 if (player == null)
-                    return await EmbedHandler.CreateErrorEmbed("Music, Stop", $"Could not aquire player.\nAre you using the bot right now? check{GlobalData.Config.DefaultPrefix}Help for info on how to use the bot.");
+                    return await EmbedHandler.CreateErrorEmbed("Music, Stop", $"Could not aquire player.\nAre you using the bot right now?");
 
                 /* Check if the player exists, if it does, check if it is playing.
                      If it is playing, we can stop.*/
@@ -383,8 +383,6 @@ namespace Cybernaut.Services
             }
             #endregion
         }
-
-
 
         public async Task<Embed> SetVolumeAsync(IGuild guild, int volume, SocketGuildUser user, ITextChannel textChannel)
         {
