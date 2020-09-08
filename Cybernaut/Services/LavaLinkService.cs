@@ -64,7 +64,7 @@ namespace Cybernaut.Services
                 string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
                 File.WriteAllText(GetConfigLocation(guild), output, new UTF8Encoding(false));
                 #endregion
-
+                await LoggingService.LogInformationAsync("JoinAsync", $"Bot joined {voiceState.VoiceChannel.Name} ({voiceState.VoiceChannel.Guild.Id})");
                 return await EmbedHandler.CreateBasicEmbed("Music, Join", $"Joined {voiceState.VoiceChannel.Name}.\n**WARNING!** - to avoid earrape lower the volume ({jObj["Prefix"]}volume).\n Current volume is {jObj["volume"]}.", Color.Purple);
             }
             catch (Exception ex)
@@ -149,7 +149,7 @@ namespace Cybernaut.Services
                 if (player.Track != null && player.PlayerState is PlayerState.Playing || player.PlayerState is PlayerState.Paused)
                 {
                     player.Queue.Enqueue(track);
-                    await LoggingService.LogInformationAsync("Music, Play", $"{track.Title} has been added to the music queue.");
+                    await LoggingService.LogInformationAsync("PlayAsync", $"{track.Title} has been added to the music queue. ({guild.Id})");
                     return await EmbedHandler.CreateBasicEmbed("Music, Play", $"{track.Title} has been added to queue.", Color.Blue);
                 }
 
@@ -171,7 +171,7 @@ namespace Cybernaut.Services
 
                     bool isLooping = jObj.islooping;
 
-                    await LoggingService.LogInformationAsync(isLooping == true ? "Music Play (looping)" : "Music Play", $"Bot Now Playing: {track.Title}\nUrl: {track.Url}");
+                    await LoggingService.LogInformationAsync(isLooping == true ? "PlayAsync (looping)" : "PlayAsync", $"Bot Now Playing: {track.Title} ({guild.Id})");
                     return await EmbedHandler.CreateBasicEmbed(isLooping == true ? "Music Play (looping)" : "Music Play", $"Now Playing: {track.Title}\nUrl: {track.Url}", Color.Blue);
                 }
                 catch (Exception e) { return await EmbedHandler.CreateErrorEmbed("Music, Play", e.Message); }
@@ -325,7 +325,7 @@ namespace Cybernaut.Services
                         var currentTrack = player.Track;
                         /* Skip the current song. */
                         await player.SkipAsync();
-                        await LoggingService.LogInformationAsync("Music, Skip", $"Bot skipped: {currentTrack.Title}");
+                        await LoggingService.LogInformationAsync("SkipTrackAsync", $"Bot skipped: {currentTrack.Title} ({guild.Id})");
                         return await EmbedHandler.CreateBasicEmbed("Music, Skip", $"I have successfully skiped {currentTrack.Title}.\n**Now playing**: {player.Track.Title}.", Color.Blue);
                     }
                     catch (Exception ex)
@@ -371,7 +371,6 @@ namespace Cybernaut.Services
                     await player.StopAsync();
                 }
 
-                await LoggingService.LogInformationAsync("Music, Stop", $"Bot has stopped playback.");
                 await LoggingService.LogInformationAsync("StopAsync", $"Bot has stopped playback. ({guild.Name})");
                 return await EmbedHandler.CreateBasicEmbed("Music, Stop", "I Have stopped playback & the playlist has been cleared.", Color.Blue);
             }
@@ -424,7 +423,7 @@ namespace Cybernaut.Services
 
                 var player = _lavaNode.GetPlayer(guild);
                 await player.UpdateVolumeAsync((ushort)jObj.volume);
-                await LoggingService.LogInformationAsync("Music, Volume", $"Bot Volume set to: {jObj.volume}");
+                await LoggingService.LogInformationAsync("SetVolumeAsync", $"Bot Volume set to: {jObj.volume} ({guild.Id})");
                 return await EmbedHandler.CreateBasicEmbed("Music, Volume", $"Volume has been set to {jObj.volume}.", Color.Blue);
             }
 
@@ -461,6 +460,7 @@ namespace Cybernaut.Services
                 }
 
                 await player.PauseAsync();
+                await LoggingService.LogInformationAsync("PauseAsync", $"Paused: {player.Track.Title} - {player.Track.Author} ({guild.Id})");
                 return await EmbedHandler.CreateBasicEmbed("Music, Pause", $"**Paused:** {player.Track.Title} - {player.Track.Author}.", Color.Blue);
             }
 
@@ -494,6 +494,7 @@ namespace Cybernaut.Services
                 {
                     await player.ResumeAsync();
                 }
+                await LoggingService.LogInformationAsync("ResumeAsync", $"Resumed: {player.Track.Title} - {player.Track.Author} ({guild.Id})");
                 return await EmbedHandler.CreateBasicEmbed("Music, Resume", $"**Resumed:** {player.Track.Title} - {player.Track.Author}.", Color.Blue);
             }
 
@@ -559,6 +560,8 @@ namespace Cybernaut.Services
                 jObj.islooping = false;
                 string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
                 File.WriteAllText(GetConfigLocation(guild), output, new UTF8Encoding(false));
+
+                await LoggingService.LogInformationAsync("LoopAsync", $"Looping is now disabled. ({guild.Id})");
                 return await EmbedHandler.CreateBasicEmbed("Looping Disabled", $"Looping is now disabled!", Color.Blue);
             }
             else
@@ -566,6 +569,8 @@ namespace Cybernaut.Services
                 jObj.islooping = true;
                 string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
                 File.WriteAllText(GetConfigLocation(guild), output, new UTF8Encoding(false));
+
+                await LoggingService.LogInformationAsync("LoopAsync", $"Looping is now enabled. ({guild.Id})");
                 return await EmbedHandler.CreateBasicEmbed("Looping Enabled", $"Looping is now enabled!", Color.Blue);
             }
             #endregion
@@ -638,6 +643,7 @@ namespace Cybernaut.Services
 
             if (!jObj.islooping)                                                                                                                                                                                                      /* display the Discord servers name but whatever i guess */
             {
+                await LoggingService.LogInformationAsync("TrackEnded", $"Now playing {track.Title} - {track.Author} ({args.Player.VoiceChannel.Guild.Id})");
                 await args.Player.TextChannel.SendMessageAsync(
                 embed: await EmbedHandler.CreateBasicEmbed("Music, Next Song", $"Now playing: {track.Title}\nUrl: {track.Url}", Color.Blue));
             }
