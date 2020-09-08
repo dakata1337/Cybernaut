@@ -21,23 +21,23 @@ namespace Cybernaut.Services
         {
             if (exception != null)
             {
-                await Append($"=====\n({DateTime.UtcNow}) [{exception.Source}] NullException:\n Message: {exception.Message}\n StackTrace: {exception.StackTrace}\n InnerEXception: {exception.InnerException}\n=====\n", severity);
+                await Append($"=====\n({DateTime.UtcNow}) [{exception.Source}] NullException:\n Message: {exception.Message}\n StackTrace: {exception.StackTrace}\n InnerEXception: {exception.InnerException}\n=====\n", getSeverityColor(severity));
                 await Task.CompletedTask;
             }
-            await Append($"{GetSeverityString(severity)} ", severity);
-            await Append($"[{src}] {message}\n");
+            await Append($"{GetSeverityString(severity)} ", getSeverityColor(severity));
+            await Append($"[{src}] {message}\n", ConsoleColor.Gray);
         }
 
-        private static async Task Append(string message, LogSeverity severity = LogSeverity.Info)
+        private static async Task Append(string message, ConsoleColor color)
         {
             await Task.Run(() => {
-                Console.ForegroundColor = getColor(severity);
+                Console.ForegroundColor = color;
                 Console.Write(message);
                 Console.ResetColor();
             });
         }
 
-        private static ConsoleColor getColor(LogSeverity severity)
+        private static ConsoleColor getSeverityColor(LogSeverity severity = new LogSeverity())
         {
             switch (severity)
             {
@@ -48,7 +48,7 @@ namespace Cybernaut.Services
                 case LogSeverity.Warning:
                     return ConsoleColor.Yellow;
                 case LogSeverity.Info:
-                    return ConsoleColor.Gray;
+                    return ConsoleColor.Green;
                 case LogSeverity.Debug:
                     return ConsoleColor.Magenta;
                 default:
@@ -72,7 +72,8 @@ namespace Cybernaut.Services
                     return "VERB";
                 case LogSeverity.Warning:
                     return "WARN";
-                default: return "UNKN";
+                default: 
+                    return "UNKN";
             }
         }
     }
