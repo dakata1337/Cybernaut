@@ -33,7 +33,7 @@ NOTE: This directory is just an example.
 7. Open Visual Studio and build the bot.
 8. To start the bot you can use the built in debugger in VS or run it from the executable.
 
-NOTE: The first time you start the bot will create a config file which you need to edit. In order for the bot to work.
+NOTE: The first time you start the bot will create a config file which you need to edit in order for the bot to work.
 ---
 
 ## Commands
