@@ -66,11 +66,20 @@ namespace Cybernaut.Services
             _client.UserBanned += _autoMessagingService.UserBanned;
             //_client.Disconnected += ClientDisconnected;
             _client.LatencyUpdated += _client_LatencyUpdated;
+            _client.GuildAvailable += _client_GuildAvailable;
+        }
+
+        private async Task<Task> _client_GuildAvailable(SocketGuild arg)
+        {
+            await LoggingService.LogInformationAsync("Guild", $"Connected to {arg.Name}");
+            return Task.CompletedTask;
         }
 
         private void SubscribeLavaLinkEvents()
         {
-            _lavaNode.OnLog += LogAsync;
+            #if DEBUG
+                _lavaNode.OnLog += LogAsync;
+            #endif
             _lavaNode.OnTrackEnded += _audioService.TrackEnded;
         }
 
