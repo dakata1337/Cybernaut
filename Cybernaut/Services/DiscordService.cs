@@ -52,6 +52,7 @@ namespace Cybernaut.Services
 
         private async Task InitializeGlobalDataAsync()
         {
+            await LoggingService.InitializeAsync(); //Initializes the logging thread
             await _globalData.InitializeAsync();
             await _guildData.InitializeAsync();
         }

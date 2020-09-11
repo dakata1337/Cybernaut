@@ -1,5 +1,7 @@
 ﻿using Discord;
 using System;
+using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Cybernaut.Services
@@ -14,8 +16,27 @@ namespace Cybernaut.Services
 
         #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         public static async Task LogTitleAsync(string message)
-        #pragma warning restore CS1998 
+        #pragma warning restore CS1998
             => Console.Title = message;
+
+        private static BlockingCollection<string> logQueue = new BlockingCollection<string>();
+        private static BlockingCollection<ConsoleColor> logColor = new BlockingCollection<ConsoleColor>();
+
+        public static Task InitializeAsync()
+        {
+            var thread = new Thread(() =>
+            {
+                while (true)
+                {
+                    Console.ForegroundColor = logColor.Take();
+                    Console.Write(logQueue.Take());
+                    Console.ResetColor();
+                }
+            });
+            thread.IsBackground = true;
+            thread.Start();
+            return Task.CompletedTask;
+        }
 
         public static async Task Log(string src, LogSeverity severity, string message, Exception exception = null)
         {
@@ -30,11 +51,8 @@ namespace Cybernaut.Services
 
         private static async Task Append(string message, ConsoleColor color)
         {
-            await Task.Run(() => {
-                Console.ForegroundColor = color;
-                Console.Write(message);
-                Console.ResetColor();
-            });
+            logColor.Add(color); //Adds the color to the queue
+            logQueue.Add(message); //Adds the message to the queue
         }
 
         private static ConsoleColor getSeverityColor(LogSeverity severity = new LogSeverity())
