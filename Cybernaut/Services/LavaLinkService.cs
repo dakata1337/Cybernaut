@@ -670,6 +670,9 @@ namespace Cybernaut.Services
             //return status;
             #endregion 
 
+            if (user.VoiceChannel is null)
+                return false;
+
             dynamic json = GetJSONAsync(guild);
             var jObj = JsonConvert.DeserializeObject(json);
 
