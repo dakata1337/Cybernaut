@@ -521,16 +521,16 @@ namespace Cybernaut.Services
 
             if (arg != null)
             {
-                if (arg.ToLower().TrimEnd(' ') == "status")
+                switch (arg.ToLower().TrimEnd(' '))
                 {
-                    bool lol = jObj.islooping;
-                    switch (lol)
-                    {
-                        case true:
+                    case "status":
+                        bool looping = jObj.islooping;
+                        if (looping)
                             return await EmbedHandler.CreateBasicEmbed("Looping Status", $"Looping is enabled.", Color.Blue);
-                        case false:
+                        else
                             return await EmbedHandler.CreateBasicEmbed("Looping Status", $"Looping is disabled.", Color.Blue);
-                    }
+                    default:
+                        return await EmbedHandler.CreateBasicEmbed("Looping Status", $"{arg} is not a valid argument.", Color.Blue); ;
                 }
             }
 
