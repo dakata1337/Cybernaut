@@ -10,6 +10,5 @@ namespace Cybernaut.DataStructs
         public bool AuthEnabled { get; set; }
         public int volume { get; set; }
         public bool islooping { get; set; }
-        public ulong voiceChannelID { get; set; }
     }
 }

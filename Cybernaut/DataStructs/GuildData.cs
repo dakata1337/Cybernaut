@@ -19,13 +19,9 @@ namespace Cybernaut.DataStructs
 
             foreach (string fileName in fileEntries)
             {
-                var json = string.Empty;
-
-                json = File.ReadAllText($@"{targetDirectory}\{fileName}.json", new UTF8Encoding(false));
+                var json = File.ReadAllText($@"{targetDirectory}\{fileName}.json", new UTF8Encoding(false));
                 Config = JsonConvert.DeserializeObject<GuildConfig>(json); 
             }
         }
-
-        
     }
 }

@@ -17,9 +17,7 @@ namespace Cybernaut.Services
         public static async Task LogCriticalAsync(string source, string message, Exception exc = null)
             => await Log(source, LogSeverity.Critical, message, exc);
 
-        #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         public static async Task LogTitleAsync(string message)
-        #pragma warning restore CS1998
             => Console.Title = message;
 
         private static BlockingCollection<string> logQueue = new BlockingCollection<string>();
@@ -30,10 +28,16 @@ namespace Cybernaut.Services
 
             var thread = new Thread(() =>
             {
+                #region Checks
+
+                #region Directory Check
                 if (!Directory.Exists(@"logs"))
                 {
                     Directory.CreateDirectory(@"logs");
                 }
+                #endregion
+
+                #endregion
 
                 string logFileLocation = @"logs/latest.log";
                 using (StreamWriter writer = File.AppendText(logFileLocation))
@@ -67,14 +71,14 @@ namespace Cybernaut.Services
         {
             if (exception != null)
             {
-                await Append($"=====\n({DateTime.UtcNow}) [{exception.Source}] NullException:\n Message: {exception.Message}\n StackTrace: {exception.StackTrace}\n InnerEXception: {exception.InnerException}\n=====\n", getSeverityColor(severity));
+                await AddToQueue($"=====\n({DateTime.UtcNow}) [{exception.Source}] NullException:\n Message: {exception.Message}\n StackTrace: {exception.StackTrace}\n InnerEXception: {exception.InnerException}\n=====\n", getSeverityColor(severity));
                 await Task.CompletedTask;
             }
-            await Append($"{GetSeverityString(severity)} ", getSeverityColor(severity));
-            await Append($"[{src}] {message}\n", ConsoleColor.Gray);
+            await AddToQueue($"{GetSeverityString(severity)} ", getSeverityColor(severity));
+            await AddToQueue($"[{src}] {message}\n", ConsoleColor.Gray);
         }
 
-        private static async Task Append(string message, ConsoleColor color)
+        private static async Task AddToQueue(string message, ConsoleColor color)
         {
             logColor.Add(color); //Adds the color to the queue
             logQueue.Add(message); //Adds the message to the queue

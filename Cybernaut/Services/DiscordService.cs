@@ -27,6 +27,7 @@ namespace Cybernaut.Services
 
         public DiscordService()
         {
+            #region Services
             _services = ConfigureServices();
             _client = _services.GetRequiredService<DiscordSocketClient>();
             _commandHandler = _services.GetRequiredService<CommandHandler>();
@@ -35,6 +36,8 @@ namespace Cybernaut.Services
             _autoMessagingService = _services.GetRequiredService<AutoMessagingService>();
             _lavaNode = _services.GetRequiredService<LavaNode>();
             _audioService = _services.GetRequiredService<LavaLinkService>();
+            #endregion
+
             SubscribeLavaLinkEvents();
             SubscribeDiscordEvents();
         }
@@ -53,21 +56,36 @@ namespace Cybernaut.Services
         private async Task InitializeGlobalDataAsync()
         {
             await LoggingService.InitializeAsync(); //Initializes the logging thread
-            await _globalData.InitializeAsync();
-            await _guildData.InitializeAsync();
+            await _globalData.InitializeAsync(); //Initializes GlobalData
+            await _guildData.InitializeAsync(); //Initializes GuildData
         }
 
         private void SubscribeDiscordEvents()
         {
             _client.Ready += ReadyAsync;
             _client.Log += LogAsync;
+
             _client.JoinedGuild += _autoMessagingService.OnGuildJoin;
             _client.LeftGuild += DeleteConfig;
             _client.UserJoined += _autoMessagingService.OnUserJoin;
             _client.UserBanned += _autoMessagingService.UserBanned;
-            //_client.Disconnected += ClientDisconnected;
             _client.LatencyUpdated += _client_LatencyUpdated;
             _client.GuildAvailable += _client_GuildAvailable;
+        }
+
+        private ServiceProvider ConfigureServices()
+        {
+            return new ServiceCollection()
+                .AddSingleton<DiscordSocketClient>()
+                .AddSingleton<CommandService>()
+                .AddSingleton<CommandHandler>()
+                .AddSingleton<GlobalData>()
+                .AddSingleton<GuildData>()
+                .AddSingleton<AutoMessagingService>()
+                .AddSingleton<LavaNode>()
+                .AddSingleton(new LavaConfig())
+                .AddSingleton<LavaLinkService>()
+                .BuildServiceProvider();
         }
 
         private async Task<Task> _client_GuildAvailable(SocketGuild arg)
@@ -88,8 +106,12 @@ namespace Cybernaut.Services
         {
             await _client.LoginAsync(TokenType.Bot, GlobalData.Config.DiscordToken);
             await _client.StartAsync();
+
+            #region Guild Update
             Thread guildsUpdate = new Thread(new ThreadStart(GuildsUpdate));
             guildsUpdate.Start();
+            #endregion
+
             return Task.CompletedTask;
         }
 
@@ -102,26 +124,16 @@ namespace Cybernaut.Services
             }
         }
 
-        //private async Task<Task> ClientDisconnected(Exception arg)
-        //{
-        //    #pragma warning disable CS4014
-        //    Task.Run(async () =>
-        //    {
-        //        await LoggingService.Log(arg.Source, LogSeverity.Warning, "Trying to reconnect to Discord Gateway",arg);
-        //    });
-        //    #pragma warning restore CS4014
-        //    await ClientConnect();
-        //    return Task.CompletedTask;
-        //}
-
         private Task DeleteConfig(SocketGuild guild)
         {
+            #region Code
             string configFile = $@"{GlobalData.Config.ConfigLocation}\{guild.Id}.json";
             if (File.Exists(configFile))
             {
                 File.Delete(configFile);
             }
             return Task.CompletedTask;
+            #endregion
         }
 
         private Task _client_LatencyUpdated(int arg1, int arg2)
@@ -145,22 +157,6 @@ namespace Cybernaut.Services
         private async Task LogAsync(LogMessage logMessage)
         {
             await LoggingService.Log(logMessage.Source, logMessage.Severity, logMessage.Message, logMessage.Exception);
-        }
-
-
-        private ServiceProvider ConfigureServices()
-        {
-            return new ServiceCollection()
-                .AddSingleton<DiscordSocketClient>()
-                .AddSingleton<CommandService>()
-                .AddSingleton<CommandHandler>()
-                .AddSingleton<GlobalData>()
-                .AddSingleton<GuildData>()
-                .AddSingleton<AutoMessagingService>()
-                .AddSingleton<LavaNode>()
-                .AddSingleton(new LavaConfig())
-                .AddSingleton<LavaLinkService>()
-                .BuildServiceProvider();
         }
     }
 }

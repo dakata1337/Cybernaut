@@ -63,7 +63,7 @@ namespace Cybernaut.Modules
         [Command("Join")]
         public async Task Join()
         {
-            await ReplyAsync(embed: await AudioService.JoinAsync(Context.Guild, Context.User as IVoiceState, Context.Channel as ITextChannel));
+            await ReplyAsync(embed: await AudioService.JoinAsync(Context.Guild, Context.User as IVoiceState, Context.Channel as ITextChannel, Context.User as SocketGuildUser));
         }
 
         [Command("Leave")]
@@ -87,7 +87,7 @@ namespace Cybernaut.Modules
         [Command("List")]
         public async Task List()
         {
-            await ReplyAsync(embed: await AudioService.ListAsync(Context.Guild));
+            await ReplyAsync(embed: await AudioService.ListAsync(Context.Guild, Context.User as SocketGuildUser));
         }
 
         [Command("Skip")]
@@ -118,6 +118,12 @@ namespace Cybernaut.Modules
         public async Task Loop(string argument = null)
         {
             await ReplyAsync(embed: await AudioService.LoopAsync(Context.Guild, Context.Channel as ITextChannel, Context.User as SocketGuildUser, argument));
+        }
+
+        [Command("Lyrics")]
+        public async Task Lyrics()
+        {
+            await ReplyAsync(embed: await AudioService.GetLyricsAsync(Context));
         }
     }
 }

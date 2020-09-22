@@ -80,9 +80,7 @@ namespace Cybernaut.Handlers
 
         private static string GetPrefix(ICommandContext context, string configFile)
         {
-            var json = string.Empty;
-
-            json = File.ReadAllText(configFile);
+            var json = File.ReadAllText(configFile);
             dynamic stuff = JsonConvert.DeserializeObject(json);
             return stuff.Prefix;
         }

@@ -21,7 +21,6 @@ namespace Cybernaut.Services
         {
             if (GlobalData.Config.BotInviteLink == null)
                 return await EmbedHandler.CreateErrorEmbed("Invite Error!", $"{context.Message.Author.Mention} i'm sorry but this bot is ether private\nor there is no invite link provided by the Bot Owner.");
-
             return await EmbedHandler.CreateBasicEmbed("Invite Created.", $"{context.Message.Author.Mention} [here]({GlobalData.Config.BotInviteLink}) is the invite you asked for.", Color.Blue);
         }
 

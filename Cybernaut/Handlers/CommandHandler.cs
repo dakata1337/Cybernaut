@@ -59,7 +59,7 @@ namespace Cybernaut.Handlers
             if (File.Exists(configFile))
             {
                 configExists = true;
-                serverPrefix = getPrefix(context, configFile);                                          //The config file exists so we use the prefix from there
+                serverPrefix = getPrefix(configFile);                                          //The config file exists so we use the prefix from there
                 if (!message.HasStringPrefix(serverPrefix, ref argPos))
                     return Task.CompletedTask;
             }
@@ -103,13 +103,6 @@ namespace Cybernaut.Handlers
 
                 return result;
             }
-            
-        }
-
-        private string getPrefix(ICommandContext context, string configFile)
-        {
-            dynamic stuff = JsonConvert.DeserializeObject(File.ReadAllText(configFile));
-            return stuff.Prefix;
         }
 
         public async Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)
@@ -172,6 +165,12 @@ namespace Cybernaut.Handlers
             }
             Thread.Sleep(5);
             return Task.CompletedTask;
+        }
+
+        private string getPrefix(string configFile)
+        {
+            dynamic stuff = JsonConvert.DeserializeObject(File.ReadAllText(configFile));
+            return stuff.Prefix;
         }
     }
 }

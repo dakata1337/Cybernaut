@@ -19,7 +19,7 @@ namespace Cybernaut.Services
     {
         public async Task<Task> OnUserJoin(SocketGuildUser user)
         {
-            var t = new Thread(() => UserAuth(user));
+            var t = new Thread(async () => await UserAuth(user));
             t.Start();
 
             return Task.CompletedTask;
@@ -27,29 +27,36 @@ namespace Cybernaut.Services
 
         public async Task<Task> UserAuth(SocketGuildUser user)
         {
+            if (user.IsBot)
+                await Task.CompletedTask;
+
             #region Reading config
             string configFile = $@"{GlobalData.Config.ConfigLocation}\{user.Guild.Id}.json";
 
             var json = File.ReadAllText(configFile);
             var jObj = JsonConvert.DeserializeObject<JObject>(json);
             #endregion
+
+            //Get Auth Role
             IRole role = user.Guild.GetRole((ulong)jObj["AuthRole"]);
 
+            #region AuthEnabled Check
             if (jObj["AuthEnabled"].ToObject<bool>() == false) //Checks if auth is enabled
             {
                 await user.AddRoleAsync(role);
                 return Task.CompletedTask;
             }
+            #endregion
 
+            //Get DMs
             await user.GetOrCreateDMChannelAsync();
 
-            await user.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed($"I'm glad you came!", $"Welcome to {user.Guild.Name}", Color.Blue));
-
+            //Reaction Message
             IMessage message = await user.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed($"Are you a robot?", $"Please confirm that you are not a robot 🤖", Color.Blue));
-
             var checkEmoji = new Emoji("✅");
             await message.AddReactionAsync(checkEmoji);
 
+            #region Reaction Check
             bool loop = true;
             while (loop)
             {
@@ -61,10 +68,15 @@ namespace Cybernaut.Services
                         await user.AddRoleAsync(role);
                         await message.DeleteAsync();
                         loop = false;
+
+                        //Welcome message
+                        await user.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed($"I'm glad you came!", $"Welcome to {user.Guild.Name}", Color.Blue));
                         break;
                     }
                 }
             }
+            #endregion
+
             return Task.CompletedTask;
         }
 
