@@ -1,6 +1,9 @@
-﻿using Discord;
+﻿using Cybernaut.DataStructs;
+using Discord;
 using System;
 using System.Collections.Concurrent;
+using System.IO;
+using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,12 +27,35 @@ namespace Cybernaut.Services
 
         public static Task InitializeAsync()
         {
+
             var thread = new Thread(() =>
             {
+                string logFileLocation = @"logs/latest.log";
+                using (StreamWriter writer = File.AppendText(logFileLocation))
+                {
+                    writer.Write($"\n============={DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")}=============\n");
+                }
+
                 while (true)
                 {
-                    Console.ForegroundColor = logColor.Take();
-                    Console.Write(logQueue.Take());
+                    string log = logQueue.Take();
+                    ConsoleColor consoleColor = logColor.Take();
+                    
+                    if (GlobalData.Config.logToFile)
+                    {
+                        if (!Directory.Exists(@"logs"))
+                        {
+                            Directory.CreateDirectory(@"logs");
+                        }
+
+                        using (StreamWriter writer = File.AppendText(logFileLocation))
+                        {
+                            writer.Write(log);
+                        }
+                    }
+
+                    Console.ForegroundColor = consoleColor;
+                    Console.Write(log);
                     Console.ResetColor();
                 }
             });

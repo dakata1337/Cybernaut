@@ -40,6 +40,7 @@ namespace Cybernaut.DataStructs
             DefaultPrefix = "!",
             GameStatus = "Game name here",
             ConfigLocation = "configs",
+            logToFile = false,
             BotInviteLink = null,
             BotOwner = "YourName#0001"
         };
