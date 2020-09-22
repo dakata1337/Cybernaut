@@ -30,6 +30,11 @@ namespace Cybernaut.Services
 
             var thread = new Thread(() =>
             {
+                if (!Directory.Exists(@"logs"))
+                {
+                    Directory.CreateDirectory(@"logs");
+                }
+
                 string logFileLocation = @"logs/latest.log";
                 using (StreamWriter writer = File.AppendText(logFileLocation))
                 {
@@ -42,11 +47,6 @@ namespace Cybernaut.Services
                     
                     if (GlobalData.Config.logToFile)
                     {
-                        if (!Directory.Exists(@"logs"))
-                        {
-                            Directory.CreateDirectory(@"logs");
-                        }
-
                         using (StreamWriter writer = File.AppendText(logFileLocation))
                         {
                             writer.Write(log);
