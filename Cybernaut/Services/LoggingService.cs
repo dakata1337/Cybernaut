@@ -39,7 +39,6 @@ namespace Cybernaut.Services
                 while (true)
                 {
                     string log = logQueue.Take();
-                    ConsoleColor consoleColor = logColor.Take();
                     
                     if (GlobalData.Config.logToFile)
                     {
@@ -54,7 +53,7 @@ namespace Cybernaut.Services
                         }
                     }
 
-                    Console.ForegroundColor = consoleColor;
+                    Console.ForegroundColor = logColor.Take();
                     Console.Write(log);
                     Console.ResetColor();
                 }
