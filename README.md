@@ -15,8 +15,8 @@
 
 * [DotNet Core (Version - 3.1)](https://dotnet.microsoft.com/download/dotnet-core/2.2) - DotNet Core framework
 * [Discord.Net (Version - 2.3.0-dev-20200904.2)](https://github.com/RogueException/Discord.Net) - Discord Library
-* [Victoria (Version - 5.1.2)](https://github.com/Yucked/Victoria) - LavaLink Library
-* [LavaLink (Version - 3.3.1.1)](https://github.com/Frederikam/Lavalink) - LavaLink
+* [Victoria (Version - 5.1.9)](https://github.com/Yucked/Victoria) - LavaLink Library
+* [LavaLink (Version - 3.3.1.2)](https://github.com/Frederikam/Lavalink) - LavaLink
 
 ## Installation
 
