@@ -100,6 +100,12 @@ namespace Cybernaut.Services
             }
             #endregion
 
+            #region Player Check
+            if (!_lavaNode.HasPlayer(guild)) //Checks if the guild has a player available.
+            {
+                return await EmbedHandler.CreateErrorEmbed("Music, Play", "I'm not connected to a voice channel.");
+            }
+
             #region Channel Check
             Embed sameChannel = await SameChannelAsBot(guild, user, "PlayAsync");
             if (sameChannel != null) //Checks If User is in the same Voice Channel as the bot.
@@ -108,11 +114,6 @@ namespace Cybernaut.Services
             }
             #endregion
 
-            #region Player Check
-            if (!_lavaNode.HasPlayer(guild)) //Checks if the guild has a player available.
-            {
-                return await EmbedHandler.CreateErrorEmbed("Music, Play", "I'm not connected to a voice channel.");
-            }
             #endregion
             #endregion
 

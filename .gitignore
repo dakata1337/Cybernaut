@@ -4,3 +4,5 @@ Cybernaut/obj/*
 *.ini
 .vs/*
 git-ignored/*
+.editorconfig
+.gitignore
