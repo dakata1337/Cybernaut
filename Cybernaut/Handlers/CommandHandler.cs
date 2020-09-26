@@ -99,7 +99,7 @@ namespace Cybernaut.Handlers
             {
                 var result = _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
                 if (!result.Result.IsSuccess && !result.Result.ErrorReason.Contains("Could not find file")) //just.. don't
-                    LoggingService.LogCriticalAsync("CommandError", $"{message.Author}: {message} => {result.Result.ErrorReason}  ({context.Guild.Id}) | {context.Guild.Name}");
+                    LoggingService.LogCriticalAsync("CommandError", $"{message.Author}: {message} => {result.Result.ErrorReason}  ({context.Guild.Id} | {context.Guild.Name}");
 
                 return result;
             }
