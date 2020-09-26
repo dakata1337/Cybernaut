@@ -31,7 +31,6 @@ namespace Cybernaut.Services
             return $@"{GlobalData.Config.ConfigLocation}\{guild.Id}.json";
             #endregion
         }
-
                                                                                                                                                                                                                                          /*
          [================Actual Code================]
                                                                                                                                                                                                                                          */
