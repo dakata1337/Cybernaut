@@ -21,23 +21,15 @@ namespace Cybernaut.Services
     public sealed class LavaLinkService
     {
         private readonly LavaNode _lavaNode;
-
+        GetService getService = new GetService();
         public LavaLinkService(LavaNode lavaNode)
             => _lavaNode = lavaNode;
-
-        private string GetConfigLocation(IGuild guild)
-        {
-            #region Code
-            return $@"{GlobalData.Config.ConfigLocation}\{guild.Id}.json";
-            #endregion
-        }
                                                                                                                                                                                                                                          /*
          [================Actual Code================]
                                                                                                                                                                                                                                          */
         public async Task<Embed> JoinAsync(IGuild guild, IVoiceState voiceState, ITextChannel textChannel, SocketGuildUser user)
         {
             #region Checks
-
             #region Config Check
             Embed embed = await ConfigCheck(guild); //checks if the bot is configured
             if (embed != null)
@@ -53,6 +45,12 @@ namespace Cybernaut.Services
             }
             #endregion
 
+            #region User Channel Check
+            if (user.VoiceChannel == null) //Checks if the user who sent the command is in a VC
+            {
+                return await EmbedHandler.CreateErrorEmbed("Music, Join/Play", "You can't use this command because you aren't in a Voice Channel!");
+            }
+            #endregion
             #endregion
 
             #region Code
@@ -61,14 +59,14 @@ namespace Cybernaut.Services
                 await _lavaNode.JoinAsync(voiceState.VoiceChannel, textChannel);
 
                 #region On join volume/islooping change
-                dynamic json = GetJSONAsync(guild);
+                dynamic json = getService.GetJSONAsync(guild);
 
                 var jObj = JsonConvert.DeserializeObject(json);
                 jObj["volume"] = JToken.FromObject(70);
                 jObj["islooping"] = false;
 
                 string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
-                File.WriteAllText(GetConfigLocation(guild), output, new UTF8Encoding(false));
+                File.WriteAllText(getService.GetConfigLocation(guild), output, new UTF8Encoding(false));
                 #endregion
 
                 await LoggingService.LogInformationAsync("JoinAsync", $"Bot joined {voiceState.VoiceChannel.Name} ({voiceState.VoiceChannel.Guild.Id})");
@@ -82,7 +80,7 @@ namespace Cybernaut.Services
             #endregion
         }
 
-        public async Task<Embed> PlayAsync(SocketGuildUser user, IGuild guild, string query, IVoiceState voiceState, ITextChannel textChannel)
+        public async Task<Embed> PlayAsync(SocketGuildUser user, IGuild guild, string query, IVoiceState voiceState)
         {
             #region Checks
             #region Config Check
@@ -125,7 +123,10 @@ namespace Cybernaut.Services
 
                 LavaTrack track;
                 var search = await _lavaNode.SearchYouTubeAsync(query);
-                
+
+                if (search.LoadStatus == LoadStatus.NoMatches)
+                    search = await _lavaNode.SearchSoundCloudAsync(query);
+
                 //If we couldn't find anything, tell the user.
                 if (search.LoadStatus == LoadStatus.NoMatches)
                 {
@@ -133,7 +134,7 @@ namespace Cybernaut.Services
                 }
 
                 #region Update Volume
-                dynamic json = GetJSONAsync(guild);
+                dynamic json = getService.GetJSONAsync(guild);
                 var jObj = JsonConvert.DeserializeObject(json);
 
                 await player.UpdateVolumeAsync((ushort)jObj.volume);
@@ -157,7 +158,7 @@ namespace Cybernaut.Services
                     if (track.Title.Contains("Rick Astley") || track.Title.Contains("Never gonna") || track.Title.Contains("Cute Little Puppy Doing Cute things"))
                     {
                         await player.PlayAsync(track);
-                        return await EmbedHandler.SendImage("https://media.giphy.com/media/Vuw9m5wXviFIQ/giphy.gif", $"Everyone who is in the channel {voiceState.VoiceChannel.Name} got rick rolled.");
+                        return await EmbedHandler.CreateImageEmbed("https://media.giphy.com/media/Vuw9m5wXviFIQ/giphy.gif", $"Everyone who is in the channel {voiceState.VoiceChannel.Name} got rick rolled.");
                     }
 
                     await player.PlayAsync(track);
@@ -214,13 +215,13 @@ namespace Cybernaut.Services
                 }
 
                 //removes the vc id from the config !VERY IMPORTANT!
-                dynamic json = GetJSONAsync(guild);
+                dynamic json = getService.GetJSONAsync(guild);
 
                 var jObj = JsonConvert.DeserializeObject(json);
                 jObj["islooping"] = false;                      //sets islooping to false
 
                 string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
-                File.WriteAllText(GetConfigLocation(guild), output, new UTF8Encoding(false));
+                File.WriteAllText(getService.GetConfigLocation(guild), output, new UTF8Encoding(false));
 
 
                 //Leave the voice channel.
@@ -275,7 +276,7 @@ namespace Cybernaut.Services
                 {
                     if (player.Queue.Count < 1 && player.Track != null)
                     {
-                        dynamic json = GetJSONAsync(guild);
+                        dynamic json = getService.GetJSONAsync(guild);
                         var jObj = JsonConvert.DeserializeObject(json);
 
                         if (jObj.islooping == true)
@@ -468,13 +469,13 @@ namespace Cybernaut.Services
             }
             try 
             {
-                dynamic json = GetJSONAsync(guild);
+                dynamic json = getService.GetJSONAsync(guild);
                 var jObj = JsonConvert.DeserializeObject(json);
 
                 jObj["volume"] = volume; //changes the volume 
 
                 string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);         //saves the config
-                File.WriteAllText(GetConfigLocation(guild), output, new UTF8Encoding(false));
+                File.WriteAllText(getService.GetConfigLocation(guild), output, new UTF8Encoding(false));
 
                 var player = _lavaNode.GetPlayer(guild);
                 await player.UpdateVolumeAsync((ushort)jObj.volume);
@@ -592,7 +593,7 @@ namespace Cybernaut.Services
             #endregion
 
             #region Argument check
-            dynamic json = GetJSONAsync(guild);
+            dynamic json = getService.GetJSONAsync(guild);
             var jObj = JsonConvert.DeserializeObject(json);
 
             if (arg != null)
@@ -626,7 +627,7 @@ namespace Cybernaut.Services
             {
                 jObj.islooping = false;
                 string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
-                File.WriteAllText(GetConfigLocation(guild), output, new UTF8Encoding(false));
+                File.WriteAllText(getService.GetConfigLocation(guild), output, new UTF8Encoding(false));
 
                 await LoggingService.LogInformationAsync("LoopAsync", $"Looping is now disabled. ({guild.Id})");
                 return await EmbedHandler.CreateBasicEmbed("Looping Disabled", $"Looping is now disabled!", Color.Blue);
@@ -635,11 +636,56 @@ namespace Cybernaut.Services
             {
                 jObj.islooping = true;
                 string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
-                File.WriteAllText(GetConfigLocation(guild), output, new UTF8Encoding(false));
+                File.WriteAllText(getService.GetConfigLocation(guild), output, new UTF8Encoding(false));
 
                 await LoggingService.LogInformationAsync("LoopAsync", $"Looping is now enabled. ({guild.Id})");
                 return await EmbedHandler.CreateBasicEmbed("Looping Enabled", $"Looping is now enabled!", Color.Blue);
             }
+            #endregion
+        }
+
+        public async Task<Embed> GetLyricsAsync(SocketCommandContext context)
+        {
+            #region Checks
+
+            #region Config Check
+            Embed embed = await ConfigCheck(context.Guild); //checks if the bot is configured
+            if (embed != null)
+            {
+                return embed;
+            }
+            #endregion
+
+            #region Channel Check
+            Embed sameChannel = await SameChannelAsBot(context.Guild, (SocketGuildUser)context.Message.Author, "GetLyricsAsync");
+            if (sameChannel != null) //Checks If User is in the same Voice Channel as the bot.
+            {
+                return sameChannel;
+            }
+            #endregion
+
+            #region Player Check
+            var player = _lavaNode.GetPlayer(context.Guild);
+            if (player.PlayerState != PlayerState.Playing)
+                return await EmbedHandler.CreateErrorEmbed("Music, Lyrics", "The bot is currently not playing music.");
+            #endregion
+
+            #endregion
+
+            #region Code
+            await context.Message.Author.GetOrCreateDMChannelAsync();
+            var LyricsFromGenius = await player.Track.FetchLyricsFromGeniusAsync();
+            var LyricsFromOVH = await player.Track.FetchLyricsFromOVHAsync();
+
+
+            if (LyricsFromGenius != string.Empty)
+                await context.Message.Author.SendMessageAsync($"We found lyrics for the song: {player.Track.Title}\n========\n" + LyricsFromGenius);
+            else if (LyricsFromOVH != string.Empty)
+                await context.Message.Author.SendMessageAsync($"We found lyrics for the song: {player.Track.Title}\n========\n" + LyricsFromOVH);
+            else
+                return await EmbedHandler.CreateErrorEmbed("Music, Lyrics", "Sorry we couldn't find the lyrics you requested.");
+
+            return await EmbedHandler.CreateBasicEmbed("Music, Lyrics", "Please check your DMs for the lyrics you requested.", Color.Blue);
             #endregion
         }
 
@@ -653,7 +699,7 @@ namespace Cybernaut.Services
                 return;
             }
 
-            dynamic json = GetJSONAsync(args.Player.VoiceChannel.Guild);
+            dynamic json = getService.GetJSONAsync(args.Player.VoiceChannel.Guild);
             var jObj = JsonConvert.DeserializeObject(json);
 
             if (jObj.islooping == true)
@@ -686,49 +732,14 @@ namespace Cybernaut.Services
             #endregion
         }
 
-        public async Task<Embed> GetLyricsAsync(SocketCommandContext context)
-        {
-            #region Checks
-
-            #region Config Check
-            Embed embed = await ConfigCheck(context.Guild); //checks if the bot is configured
-            if (embed != null)
-            {
-                return embed;
-            }
-            #endregion
-
-            #region Channel Check
-            Embed sameChannel = await SameChannelAsBot(context.Guild, (SocketGuildUser)context.Message.Author, "GetLyricsAsync");
-            if (sameChannel != null) //Checks If User is in the same Voice Channel as the bot.
-            {
-                return sameChannel;
-            }
-            #endregion
-
-            #endregion
-
-            #region Code
-            var player = _lavaNode.GetPlayer(context.Guild);
-            await context.Message.Author.GetOrCreateDMChannelAsync();
-            var LyricsFromGenius = await player.Track.FetchLyricsFromGeniusAsync();
-            var LyricsFromOVH = await player.Track.FetchLyricsFromOVHAsync();
-
-
-            if (LyricsFromGenius != string.Empty)
-                await context.Message.Author.SendMessageAsync($"We found lyrics for the song: {player.Track.Title}\n========\n" + LyricsFromGenius);
-            else if (LyricsFromOVH != string.Empty)
-                await context.Message.Author.SendMessageAsync($"We found lyrics for the song: {player.Track.Title}\n========\n" + LyricsFromOVH);
-            else
-                return await EmbedHandler.CreateErrorEmbed("Music, Lyrics", "Sorry we couldn't find the lyrics you requested.");
-
-            return await EmbedHandler.CreateBasicEmbed("Music, Lyrics", "Please check your DMs for the lyrics you requested.", Color.Blue);
-            #endregion
-        }
-
         private async Task<Embed> SameChannelAsBot(IGuild guild, SocketGuildUser user, string src)
         {
             #region Checks
+
+            #region Player Check
+            if (!_lavaNode.HasPlayer(guild))
+                return await EmbedHandler.CreateErrorEmbed(src, "I'm not connected to a voice channel.");
+            #endregion
 
             #region User Channel Check
             if (user.VoiceChannel is null)
@@ -748,21 +759,12 @@ namespace Cybernaut.Services
         private async Task<Embed> ConfigCheck(IGuild guild)
         {
             #region Code
-            string configFile = GetConfigLocation(guild);
+            string configFile = getService.GetConfigLocation(guild);
             if (!File.Exists(configFile))
             {
                 return await EmbedHandler.CreateBasicEmbed("Configuration needed!", $"Please type `{GlobalData.Config.DefaultPrefix}prefix YourPrefixHere` to configure the bot.", Color.Orange);
             }
             return null;
-            #endregion
-        }
-
-        private string GetJSONAsync(IGuild guild)
-        {
-            #region Code
-            string configFile = GetConfigLocation(guild);
-            var json = File.ReadAllText(configFile);
-            return json;
             #endregion
         }
     }

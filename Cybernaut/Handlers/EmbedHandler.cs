@@ -1,6 +1,8 @@
 ﻿using Cybernaut.DataStructs;
+using Cybernaut.Services;
 using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -12,6 +14,8 @@ namespace Cybernaut.Handlers
 {
     public static class EmbedHandler
     {
+        static GetService getService = new GetService();
+
         public static async Task<Embed> CreateBasicEmbed(string title, string description, Color color)
         {
             var embed = await Task.Run(() => (new EmbedBuilder()
@@ -31,7 +35,7 @@ namespace Cybernaut.Handlers
                 .WithCurrentTimestamp().Build()));
             return embed;
         }
-        public static async Task<Embed> SendImage(string link, string title)
+        public static async Task<Embed> CreateImageEmbed(string link, string title)
         {
             var embed = await Task.Run(() => new EmbedBuilder()
                 .WithTitle(title)
@@ -42,7 +46,10 @@ namespace Cybernaut.Handlers
 
         public static async Task<Embed> DisplayInfoAsync(SocketCommandContext context, Color color)
         {
-            string configFile = $@"{GlobalData.Config.ConfigLocation}\{context.Guild.Id}.json";
+            #region Code
+            string configFile = getService.GetConfigLocation(context.Guild);
+
+            #region Custom Fields
 
             var fields = new List<EmbedFieldBuilder>();
             fields.Add(new EmbedFieldBuilder
@@ -75,14 +82,42 @@ namespace Cybernaut.Handlers
                 Fields = fields
             });
             embed.Color = color;
+
+            #endregion
+
             return embed.Build();
+            #endregion 
+        }
+
+        public static async Task<Embed> CreateCustomEmbed(SocketGuild guild, Color color, List<EmbedFieldBuilder> fields, string embedTitle, bool showAppreciation)
+        {
+            #region Code
+            var embed = await Task.Run(() => new EmbedBuilder
+            {
+                Title = embedTitle,
+                Timestamp = DateTime.UtcNow,
+                Color = Color.DarkOrange,
+                Fields = fields
+            });
+
+            if (showAppreciation)
+            {
+                embed.ThumbnailUrl = guild.IconUrl;
+                embed.Footer = new EmbedFooterBuilder { Text = $"Thank you for choosing {guild.CurrentUser.Username}", IconUrl = guild.CurrentUser.GetAvatarUrl() };
+            }
+
+            embed.Color = color;
+            return embed.Build();
+            #endregion
         }
 
         private static string GetPrefix(ICommandContext context, string configFile)
         {
+            #region Code
             var json = File.ReadAllText(configFile);
             dynamic stuff = JsonConvert.DeserializeObject(json);
             return stuff.Prefix;
+            #endregion
         }
     }
 }

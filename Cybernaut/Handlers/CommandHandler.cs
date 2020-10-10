@@ -19,6 +19,7 @@ namespace Cybernaut.Handlers
         private readonly DiscordSocketClient _client;
         private readonly CommandService _commands;
         private readonly IServiceProvider _services;
+        private GetService getService = new GetService();
 
         public CommandHandler(IServiceProvider services)
         {
@@ -43,41 +44,43 @@ namespace Cybernaut.Handlers
             _client.MessageReceived += HandleCommandAsync;
         }
 
-        private Task HandleCommandAsync(SocketMessage socketMessage)
+        private async Task<Task> HandleCommandAsync(SocketMessage socketMessage)
         {
             var argPos = 0;
 
+            #region Checks message origins
             if (!(socketMessage is SocketUserMessage message) || message.Author.IsBot || message.Author.IsWebhook || message.Channel is IPrivateChannel)
                 return Task.CompletedTask;
+            #endregion
 
             var context = new SocketCommandContext(_client, socketMessage as SocketUserMessage);
-            string configFile = $@"{GlobalData.Config.ConfigLocation}\{context.Guild.Id}.json";
-
+            string configFile = getService.GetConfigLocation(context.Guild);
             string serverPrefix = string.Empty;
-            
+
+            #region Prefix Checks
             bool configExists = false;
             if (File.Exists(configFile))
             {
                 configExists = true;
-                serverPrefix = getPrefix(configFile);                                          //The config file exists so we use the prefix from there
+                serverPrefix = getPrefix(configFile);                                                   //If the config file exists we use the prefix from there
                 if (!message.HasStringPrefix(serverPrefix, ref argPos))
                     return Task.CompletedTask;
             }
             else
             {
-                serverPrefix = GlobalData.Config.DefaultPrefix;                                         //The config file doesnt exist so we use the default
+                serverPrefix = GlobalData.Config.DefaultPrefix;                                         //If the config file doesnt exist we use the default
                 if (!message.HasStringPrefix(serverPrefix, ref argPos))                                 //prefix
                     return Task.CompletedTask;
-
             }
 
-            if (message.Content == serverPrefix)                                                        //checks if the message contains only the prefix
+            if (message.Content == serverPrefix)                                                        //Checks if the message contains only the prefix
                 return Task.CompletedTask;
 
             if (message.Content[serverPrefix.Length].ToString() == " " && message.Content.Length > 1)   //Checks if the char after the prefix is space 
                 return Task.CompletedTask;                                                              //(used cuz ">" is used for formating in discord)
+            #endregion
 
-
+            #region Whitelisted Channel Check
             ulong whitelistedChannel = new ulong();
             if (configExists)
             {
@@ -89,20 +92,17 @@ namespace Cybernaut.Handlers
                                               select a;
                 whitelistedChannel = whitelistedChannelCheck.FirstOrDefault();
             }
+            #endregion
 
-            
-            if (whitelistedChannel != context.Channel.Id && configExists)
-            {
-                return Task.CompletedTask;
-            }
-            else
+            #region Last Whitelist & Config Check
+            if (whitelistedChannel == context.Channel.Id && configExists)
             {
                 var result = _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
-                if (!result.Result.IsSuccess && !result.Result.ErrorReason.Contains("Could not find file")) //just.. don't
-                    LoggingService.LogCriticalAsync("CommandError", $"{message.Author}: {message} => {result.Result.ErrorReason}  ({context.Guild.Id} | {context.Guild.Name}");
-
                 return result;
             }
+            #endregion
+
+            return Task.CompletedTask;
         }
 
         public async Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)
@@ -117,15 +117,18 @@ namespace Cybernaut.Handlers
 
         private async Task DisplayErrors(IResult result, ICommandContext context)
         {
+            #region Code
             string msg = string.Empty;
             string title = "Command Error";
-            Color color = Color.Blue;
+
+            #region Messages
             switch (result.Error)
             {
                 case CommandError.BadArgCount:
                     msg = "This command is not supposed to be used like this.";
                     break;
                 case CommandError.UnmetPrecondition:
+                    msg = result.ErrorReason;
                     break;
                 case CommandError.ObjectNotFound:
                     msg = "The specified object was not found.";
@@ -136,24 +139,29 @@ namespace Cybernaut.Handlers
                 default:
                     if (result.ErrorReason.Contains("Could not find file"))
                     {
-                        msg = $"Please type `{GlobalData.Config.DefaultPrefix}prefix YourPrefixHere` to configure the bot."; color = Color.Orange; title = "Configuration needed!";
+                        msg = $"Please type `{GlobalData.Config.DefaultPrefix}prefix YourPrefixHere` to configure the bot.";
+                        title = "Configuration needed!";
                     }
                     else
                     {
+                        await LoggingService.LogCriticalAsync("CommandError", 
+                            $"{context.Message.Author}: {context.Message.Content} => {result.ErrorReason}  ({context.Guild.Id} | {context.Guild.Name})");
                         msg = "Internal Bot error.";
-                        color = Color.Orange;
                     }
                     break;
             }
+            #endregion
 
-            if(msg != null)
+            if (msg != null)
             {
-                await context.Channel.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed(title, msg, color));
+                await context.Channel.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed(title, msg, Color.Orange));
             }
+            #endregion
         }
 
         private async Task<Task> LogAsync(LogMessage log)
         {
+            #region Code
             switch (log.Severity)
             {
                 case LogSeverity.Critical:
@@ -163,14 +171,16 @@ namespace Cybernaut.Handlers
                     await LoggingService.LogInformationAsync(log.Source, log.Message);
                     break;
             }
-            Thread.Sleep(5);
             return Task.CompletedTask;
+            #endregion
         }
 
         private string getPrefix(string configFile)
         {
+            #region Code
             dynamic stuff = JsonConvert.DeserializeObject(File.ReadAllText(configFile));
             return stuff.Prefix;
+            #endregion
         }
     }
 }

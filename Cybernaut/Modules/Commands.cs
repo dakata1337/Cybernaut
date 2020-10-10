@@ -11,15 +11,33 @@ namespace Cybernaut.Modules
     {
         public LavaLinkService AudioService { get; set; }
         ConfigService configService = new ConfigService();
-        AutoMessagingService autoMessagingService = new AutoMessagingService(); //Used for testing purposes 
+        AutoMessagingService autoMessagingService = new AutoMessagingService();
         CommandsService commandsService = new CommandsService();
 
+        #region Testing Commands
+        /* Used for testing purposes */
+        //[Command("join")]
+        //public async Task FakeJoin()
+        //{
+        //    await autoMessagingService.OnGuildJoin(Context.Guild);
+        //}
+        #endregion
+
+        #region Regular Commands
         [Command("status")]
         public async Task JoinAndPlay()
         {
             await ReplyAsync(embed: await EmbedHandler.DisplayInfoAsync(Context, Color.Purple));
         }
 
+        [Command("invite")]
+        public async Task GetInvite()
+        {
+            await ReplyAsync(embed: await commandsService.GetInvite(Context));
+        }
+        #endregion
+
+        #region Administration commands
         [Command("prefix"), RequireUserPermission(GuildPermission.Administrator)]
         public async Task ChangePrefix(string prefix)
         {
@@ -32,34 +50,14 @@ namespace Cybernaut.Modules
             await ReplyAsync(embed: await configService.WhiteList(Context, channel.Id, arg));
         }
 
-        [Command("invite")]
-        public async Task GetInvite()
+        [Command("auth"), RequireUserPermission(GuildPermission.Administrator)]
+        public async Task Authentication(string arg = null, IRole role = null)
         {
-            await ReplyAsync(embed: await commandsService.GetInvite(Context));
+            await ReplyAsync(embed: await configService.Authentication(arg, role, Context));
         }
+        #endregion
 
-        [Command("auth")]
-        public async Task Authentication(string arg, IRole role = null)
-        {
-            await ReplyAsync(embed: await commandsService.Authentication(arg, role, Context));
-        }
-
-        /* Used for testing purposes */
-        //[Command("join")]
-        //public async Task FakeJoin()
-        //{
-        //    await autoMessagingService.OnGuildJoin(Context.Guild);
-        //}
-
-        //[Command("userjoin")]
-        //public async Task OnUserJoin(SocketGuildUser user)
-        //{
-        //    await autoMessagingService.OnUserJoin(user);
-        //}
-
-
-        /*Music Commands*/
-
+        #region Music Commands
         [Command("Join")]
         public async Task Join()
         {
@@ -75,7 +73,7 @@ namespace Cybernaut.Modules
         [Command("Play")]
         public async Task Play([Remainder] string search)
         {
-            await ReplyAsync(embed: await AudioService.PlayAsync(Context.User as SocketGuildUser, Context.Guild, search, Context.User as IVoiceState, Context.Channel as ITextChannel));
+            await ReplyAsync(embed: await AudioService.PlayAsync(Context.User as SocketGuildUser, Context.Guild, search, Context.User as IVoiceState));
         }
 
         [Command("Stop")]
@@ -125,5 +123,6 @@ namespace Cybernaut.Modules
         {
             await ReplyAsync(embed: await AudioService.GetLyricsAsync(Context));
         }
+        #endregion
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Cybernaut.DataStructs;
 using Discord;
+using Microsoft.VisualBasic.CompilerServices;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -17,16 +18,17 @@ namespace Cybernaut.Services
         public static async Task LogCriticalAsync(string source, string message, Exception exc = null)
             => await Log(source, LogSeverity.Critical, message, exc);
 
-        public static async Task LogTitleAsync(string message)
+        public static void LogTitle(string message)
             => Console.Title = message;
 
-        private static BlockingCollection<string> logQueue = new BlockingCollection<string>();
-        private static BlockingCollection<ConsoleColor> logColor = new BlockingCollection<ConsoleColor>();
+        private static BlockingCollection<string> sourceQueue = new BlockingCollection<string>();
+        private static BlockingCollection<string> messageQueue = new BlockingCollection<string>();
+        private static BlockingCollection<ConsoleColor> colorQueue = new BlockingCollection<ConsoleColor>();
 
         public static Task InitializeAsync()
         {
-
-            var thread = new Thread(() =>
+            string latestLog = "logs/latest.log";
+            var loggingThread = new Thread(async () =>
             {
                 #region Checks
 
@@ -39,31 +41,33 @@ namespace Cybernaut.Services
 
                 #endregion
 
-                string logFileLocation = @"logs/latest.log";
-                using (StreamWriter writer = File.AppendText(logFileLocation))
-                {
-                    writer.Write($"\n============={DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")}=============\n");
-                }
+                #region Code
 
+                await LogToFile($"============={DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")}=============\n", latestLog);
+
+                #region Loop
                 while (true)
                 {
-                    string log = logQueue.Take();
+                    string src = sourceQueue.Take();
+                    string msg = messageQueue.Take();
                     
                     if (GlobalData.Config.logToFile)
                     {
-                        using (StreamWriter writer = File.AppendText(logFileLocation))
-                        {
-                            writer.Write(log);
-                        }
+                        await LogToFile($"[{src}] " + msg + Environment.NewLine, latestLog);
                     }
 
-                    Console.ForegroundColor = logColor.Take();
-                    Console.Write(log);
+                    Console.ForegroundColor = colorQueue.Take();
+                    Console.Write($"[{src}] ");
                     Console.ResetColor();
+                    Console.Write(msg + Environment.NewLine);
                 }
+                #endregion
+
+                #endregion
             });
-            thread.IsBackground = true;
-            thread.Start();
+
+            loggingThread.IsBackground = true;
+            loggingThread.Start();
             return Task.CompletedTask;
         }
 
@@ -71,21 +75,38 @@ namespace Cybernaut.Services
         {
             if (exception != null)
             {
-                await AddToQueue($"=====\n({DateTime.UtcNow}) [{exception.Source}] NullException:\n Message: {exception.Message}\n StackTrace: {exception.StackTrace}\n InnerEXception: {exception.InnerException}\n=====\n", getSeverityColor(severity));
+                await AddToQueue(exception.Source,
+                    $"========({DateTime.UtcNow})========\n" +
+                    $"Exception: {exception}\n " +
+                    $" Message: {exception.Message}\n " +
+                    $" StackTrace: {exception.StackTrace}\n " +
+                    $" InnerEXception: {exception.InnerException}\n" +
+                    $"=====", 
+                    getSeverityColor(severity));
                 await Task.CompletedTask;
             }
-            await AddToQueue($"{GetSeverityString(severity)} ", getSeverityColor(severity));
-            await AddToQueue($"[{src}] {message}\n", ConsoleColor.Gray);
+            await AddToQueue(src, message, getSeverityColor(severity));
         }
 
-        private static async Task AddToQueue(string message, ConsoleColor color)
+        private static async Task AddToQueue(string src, string msg, ConsoleColor color)
         {
-            logColor.Add(color); //Adds the color to the queue
-            logQueue.Add(message); //Adds the message to the queue
+            sourceQueue.Add(src); //Adds the source to the queue
+            messageQueue.Add(msg); //Adds the message to the queue
+            colorQueue.Add(color); //Adds the color to the queue
+            await Task.CompletedTask;
+        }
+
+        private static async Task LogToFile(string message, string logFileLocation)
+        {
+            using (StreamWriter writer = File.AppendText(logFileLocation))
+                writer.Write(message);
+
+            await Task.CompletedTask;
         }
 
         private static ConsoleColor getSeverityColor(LogSeverity severity = new LogSeverity())
         {
+            #region Code
             switch (severity)
             {
                 case LogSeverity.Critical:
@@ -101,27 +122,7 @@ namespace Cybernaut.Services
                 default:
                     return ConsoleColor.White;
             }
-        }
-
-        private static string GetSeverityString(LogSeverity severity)
-        {
-            switch (severity)
-            {
-                case LogSeverity.Critical:
-                    return "CRIT";
-                case LogSeverity.Debug:
-                    return "DBUG";
-                case LogSeverity.Error:
-                    return "EROR";
-                case LogSeverity.Info:
-                    return "INFO";
-                case LogSeverity.Verbose:
-                    return "VERB";
-                case LogSeverity.Warning:
-                    return "WARN";
-                default: 
-                    return "UNKN";
-            }
+            #endregion
         }
     }
 }

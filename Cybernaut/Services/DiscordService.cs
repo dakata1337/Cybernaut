@@ -24,6 +24,7 @@ namespace Cybernaut.Services
         private readonly AutoMessagingService _autoMessagingService;
         private readonly LavaNode _lavaNode;
         private readonly LavaLinkService _audioService;
+        GetService getService = new GetService();
 
         public DiscordService()
         {
@@ -68,36 +69,14 @@ namespace Cybernaut.Services
             _client.JoinedGuild += _autoMessagingService.OnGuildJoin;
             _client.LeftGuild += DeleteConfig;
             _client.UserJoined += _autoMessagingService.OnUserJoin;
-            _client.UserBanned += _autoMessagingService.UserBanned;
-            _client.LatencyUpdated += _client_LatencyUpdated;
-            _client.GuildAvailable += _client_GuildAvailable;
-        }
-
-        private ServiceProvider ConfigureServices()
-        {
-            return new ServiceCollection()
-                .AddSingleton<DiscordSocketClient>()
-                .AddSingleton<CommandService>()
-                .AddSingleton<CommandHandler>()
-                .AddSingleton<GlobalData>()
-                .AddSingleton<GuildData>()
-                .AddSingleton<AutoMessagingService>()
-                .AddSingleton<LavaNode>()
-                .AddSingleton(new LavaConfig())
-                .AddSingleton<LavaLinkService>()
-                .BuildServiceProvider();
-        }
-
-        private async Task<Task> _client_GuildAvailable(SocketGuild arg)
-        {
-            await LoggingService.LogInformationAsync("Guild", $"Connected to {arg.Name}");
-            return Task.CompletedTask;
+            _client.LatencyUpdated += LatencyUpdate;
+            _client.GuildAvailable += GuildAvailable;
         }
 
         private void SubscribeLavaLinkEvents()
         {
             #if DEBUG
-                _lavaNode.OnLog += LogAsync;
+            _lavaNode.OnLog += LogAsync;
             #endif
             _lavaNode.OnTrackEnded += _audioService.TrackEnded;
         }
@@ -115,6 +94,41 @@ namespace Cybernaut.Services
             return Task.CompletedTask;
         }
 
+        private async Task ReadyAsync()
+        {
+            try
+            {
+                await _lavaNode.ConnectAsync();
+                await _client.SetGameAsync(GlobalData.Config.GameStatus);
+            }
+            catch (Exception ex)
+            {
+                await LoggingService.LogCriticalAsync(ex.Source, ex.Message, ex);
+            }
+        }
+
+        private ServiceProvider ConfigureServices()
+        {
+            return new ServiceCollection()
+                .AddSingleton<DiscordSocketClient>()
+                .AddSingleton<CommandService>()
+                .AddSingleton<CommandHandler>()
+                .AddSingleton<GlobalData>()
+                .AddSingleton<GuildData>()
+                .AddSingleton<AutoMessagingService>()
+                .AddSingleton<LavaNode>()
+                .AddSingleton(new LavaConfig())
+                .AddSingleton<LavaLinkService>()
+                .BuildServiceProvider();
+        }
+
+        #region Custom whatever
+        private async Task<Task> GuildAvailable(SocketGuild arg)
+        {
+            await LoggingService.LogInformationAsync("Guild", $"Connected to {arg.Name}");
+            return Task.CompletedTask;
+        }
+
         private void GuildsUpdate()
         {
             while (true)
@@ -127,7 +141,7 @@ namespace Cybernaut.Services
         private Task DeleteConfig(SocketGuild guild)
         {
             #region Code
-            string configFile = $@"{GlobalData.Config.ConfigLocation}\{guild.Id}.json";
+            string configFile = getService.GetConfigLocation(guild);
             if (File.Exists(configFile))
             {
                 File.Delete(configFile);
@@ -136,27 +150,18 @@ namespace Cybernaut.Services
             #endregion
         }
 
-        private Task _client_LatencyUpdated(int arg1, int arg2)
-        {
-            return LoggingService.LogTitleAsync($"Current ping: {arg2}ms");
+        private Task LatencyUpdate(int arg1, int arg2) 
+        { 
+            LoggingService.LogTitle($"Current ping: {arg2}ms");
+            return Task.CompletedTask;
         }
+        #endregion
 
-        private async Task ReadyAsync()
-        {
-            try
-            {
-                await _lavaNode.ConnectAsync();
-                await _client.SetGameAsync(GlobalData.Config.GameStatus);
-            }
-            catch (Exception ex)
-            {
-                await LoggingService.LogCriticalAsync(ex.Source, ex.Message, ex);
-            }
-
-        }
+        #region Logging
         private async Task LogAsync(LogMessage logMessage)
         {
             await LoggingService.Log(logMessage.Source, logMessage.Severity, logMessage.Message, logMessage.Exception);
         }
+        #endregion
     }
 }

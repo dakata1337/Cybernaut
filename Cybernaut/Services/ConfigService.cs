@@ -17,6 +17,7 @@ namespace Cybernaut.Services
     public class ConfigService
     {
         public List<ulong> whitelistedChannels { get; set; }
+        GetService getService = new GetService();
 
         public async Task<Embed> ChangePrefix(SocketCommandContext context, string prefix)
         {
@@ -33,7 +34,7 @@ namespace Cybernaut.Services
 
             #region Code
             var json = string.Empty;
-            string configFile = $@"{GlobalData.Config.ConfigLocation}\{context.Guild.Id}.json";
+            string configFile = getService.GetConfigLocation(context.Guild);
             bool autoWhitelist = false;
 
             if (File.Exists(configFile))
@@ -78,7 +79,7 @@ namespace Cybernaut.Services
 
         public async Task<Embed> WhiteList(SocketCommandContext context, ulong channelID, string arg)
         {
-            string configFile = GetConfigLocation(context);
+            string configFile = getService.GetConfigLocation(context.Guild);
 
             #region Checks
 
@@ -200,9 +201,110 @@ namespace Cybernaut.Services
             islooping = false
         };
 
-        private string GetConfigLocation(SocketCommandContext context)
+        public async Task<Embed> Authentication(string arg, IRole role, SocketCommandContext context)
         {
-            return $@"{GlobalData.Config.ConfigLocation}\{context.Guild.Id}.json";
+            #region Cases
+            switch (arg)
+            {
+                case "enable":
+                    return await EnableAuthentication(context);
+                case "disable":
+                    return await DisableAuthentication(context);
+                case "role":
+                    return await ChangeAuthenticationRole(role, context);
+                case null:
+                    return await AuthenticationStatus(context);
+                default:
+                    return await EmbedHandler.CreateErrorEmbed("Configuration Error!", $"{arg} is not a valid argument.");
+            }
+            #endregion
         }
+
+        #region Auth Functions
+        private async Task<Embed> EnableAuthentication(SocketCommandContext context)
+        {
+            string configFile = getService.GetConfigLocation(context.Guild);
+
+            #region Enable Authentication 
+            var json = File.ReadAllText(configFile);
+            var jObj = JsonConvert.DeserializeObject<JObject>(json);
+
+            if ((bool)jObj["AuthEnabled"] == true)
+                return await EmbedHandler.CreateErrorEmbed("Configuration Error!", "Authentication is already enabled.");
+
+            jObj["AuthEnabled"] = true;
+
+            string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
+            File.WriteAllText(configFile, output);
+            #endregion 
+
+            return await EmbedHandler.CreateBasicEmbed("Authentication Enabled.", $"Authentication is now enabled!", Color.Blue);
+        }
+
+
+        private async Task<Embed> DisableAuthentication(SocketCommandContext context)
+        {
+            string configFile = getService.GetConfigLocation(context.Guild);
+
+            #region Disable Authentication
+            var json = File.ReadAllText(configFile);
+            var jObj = JsonConvert.DeserializeObject<JObject>(json);
+
+            if ((bool)jObj["AuthEnabled"] == false)
+                return await EmbedHandler.CreateErrorEmbed("Configuration Error!", "Authentication is already disabled.");
+
+            jObj["AuthEnabled"] = false;
+
+            string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
+            File.WriteAllText(configFile, output);
+            #endregion
+
+            return await EmbedHandler.CreateBasicEmbed("Authentication Disabled.", $"Authentication is now disabled!", Color.Blue);
+        }
+
+        private async Task<Embed> ChangeAuthenticationRole(IRole role, SocketCommandContext context)
+        {
+            string configFile = getService.GetConfigLocation(context.Guild);
+
+            #region Changes the auth role
+            var json = File.ReadAllText(configFile);
+            var jObj = JsonConvert.DeserializeObject<JObject>(json);
+
+            if ((ulong)jObj["AuthRole"] == role.Id)
+                return await EmbedHandler.CreateErrorEmbed("Configuration Error!", $"{role.Name} is already the authentication role.");
+
+            jObj["AuthRole"] = role.Id;
+
+            string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
+            File.WriteAllText(configFile, output);
+            #endregion
+
+            return await EmbedHandler.CreateBasicEmbed("Authentication Configuration.", $"{role.Name} is now the authentication role.", Color.Blue);
+        }
+
+        private async Task<Embed> AuthenticationStatus(SocketCommandContext context)
+        {
+            #region JSON
+            dynamic json = getService.GetJSONAsync(context.Guild);
+            var jObj = JsonConvert.DeserializeObject(json);
+
+            bool isEnabled = jObj.AuthEnabled;
+            ulong roleID = jObj.AuthRole;
+            #endregion
+
+            #region Custom Embed
+            var fields = new List<EmbedFieldBuilder>();
+            fields.Add(new EmbedFieldBuilder
+            {
+                Name = "**Settings**",
+                Value = $"Enabled: {isEnabled}\n" +
+                $"Role: {context.Guild.GetRole(roleID).Name}",
+                IsInline = false
+            });
+            #endregion
+
+            return await EmbedHandler.CreateCustomEmbed(context.Guild, Color.Blue, fields, "Authentication Status", false);
+        }
+        #endregion
     }
 }

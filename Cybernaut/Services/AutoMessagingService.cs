@@ -17,21 +17,31 @@ namespace Cybernaut.Services
 {
     public class AutoMessagingService
     {
-        public async Task<Task> OnUserJoin(SocketGuildUser user)
+        GetService getService = new GetService();
+
+        public Task OnUserJoin(SocketGuildUser user)
         {
+            #region Code
+            if (user.IsBot)
+                return Task.CompletedTask;
+
             var t = new Thread(async () => await UserAuth(user));
             t.Start();
 
             return Task.CompletedTask;
+            #endregion
         }
 
         public async Task<Task> UserAuth(SocketGuildUser user)
         {
+            #region Checks
             if (user.IsBot)
                 await Task.CompletedTask;
+            #endregion
 
+            #region Code
             #region Reading config
-            string configFile = $@"{GlobalData.Config.ConfigLocation}\{user.Guild.Id}.json";
+            string configFile = getService.GetConfigLocation(user.Guild);
 
             var json = File.ReadAllText(configFile);
             var jObj = JsonConvert.DeserializeObject<JObject>(json);
@@ -40,8 +50,13 @@ namespace Cybernaut.Services
             //Get Auth Role
             IRole role = user.Guild.GetRole((ulong)jObj["AuthRole"]);
 
+            //Checks if an auth role is set
+            if (role is null)
+                return Task.CompletedTask;
+
             #region AuthEnabled Check
-            if (jObj["AuthEnabled"].ToObject<bool>() == false) //Checks if auth is enabled
+            //If auth is disable give role straight away
+            if (jObj["AuthEnabled"].ToObject<bool>() == false)
             {
                 await user.AddRoleAsync(role);
                 return Task.CompletedTask;
@@ -61,6 +76,7 @@ namespace Cybernaut.Services
             while (loop)
             {
                 var reactedUsers = await message.GetReactionUsersAsync(checkEmoji, 1).FlattenAsync();
+
                 foreach (var item in reactedUsers)
                 {
                     if (!item.IsBot && item.Id == user.Id)
@@ -77,11 +93,14 @@ namespace Cybernaut.Services
             }
             #endregion
 
+            #endregion
+
             return Task.CompletedTask;
         }
 
         public async Task OnGuildJoin(SocketGuild guild)
         {
+            #region Code
             #region Custom Embed 
             var fields = new List<EmbedFieldBuilder>();
             fields.Add(new EmbedFieldBuilder
@@ -107,34 +126,10 @@ namespace Cybernaut.Services
             });
             #endregion
 
-            var channel = guild.SystemChannel as SocketTextChannel; //Gets the channel to send the message in
-            await channel.SendMessageAsync(embed: await CreateCustomEmbed(guild, Color.Blue, fields, "I have arrived!")); //Sends the Embed
+            var channel = guild.DefaultChannel as SocketTextChannel;
+
+            await channel.SendMessageAsync(embed: await EmbedHandler.CreateCustomEmbed(guild, Color.Blue, fields, "I have arrived!", true)); //Sends the Embed
+            #endregion
         }
-
-        public async Task UserBanned(SocketUser user, SocketGuild guild)
-        {
-            await user.GetOrCreateDMChannelAsync();
-            var ban = await guild.GetBanAsync(user);
-            await user.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed("User Banned.", ban.Reason == null ? $"You have been banned from {guild.Name}. " +
-                $"Reason: Not specified" : $"You have been banned from {guild.Name}. Reason: {ban.Reason}", Color.Red));
-        }
-
-
-        //Custom embeds
-        public async Task<Embed> CreateCustomEmbed(SocketGuild guild, Color color, List<EmbedFieldBuilder> fields, string embedTitle)
-        {
-            var embed = await Task.Run(() => new EmbedBuilder
-            {
-                Title = embedTitle,
-                ThumbnailUrl = guild.IconUrl,
-                Timestamp = DateTime.UtcNow,
-                Color = Color.DarkOrange,
-                Footer = new EmbedFooterBuilder { Text = $"Thank you for choosing {guild.CurrentUser.Username}", IconUrl = guild.CurrentUser.GetAvatarUrl() },
-                Fields = fields
-            });
-            embed.Color = color;
-            return embed.Build();
-        }
-
     }
 }
