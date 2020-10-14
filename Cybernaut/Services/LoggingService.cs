@@ -1,5 +1,8 @@
 ﻿using Cybernaut.DataStructs;
+using Cybernaut.Handlers;
 using Discord;
+using Discord.Net;
+using Discord.WebSocket;
 using Microsoft.VisualBasic.CompilerServices;
 using System;
 using System.Collections.Concurrent;
@@ -23,6 +26,7 @@ namespace Cybernaut.Services
 
         private static BlockingCollection<string> sourceQueue = new BlockingCollection<string>();
         private static BlockingCollection<string> messageQueue = new BlockingCollection<string>();
+        private static BlockingCollection<Exception> exceptionQueue = new BlockingCollection<Exception>();
         private static BlockingCollection<ConsoleColor> colorQueue = new BlockingCollection<ConsoleColor>();
 
         public static Task InitializeAsync()
@@ -66,26 +70,47 @@ namespace Cybernaut.Services
                 #endregion
             });
 
+            var exceptionThread = new Thread(async () =>
+            {
+                while (true)
+                {
+                    Exception exception = exceptionQueue.Take();
+                    switch (exception)
+                    {
+                        case GatewayReconnectException: case WebSocketClosedException:
+                            await AddToQueue("Gateway", exception.Message, ConsoleColor.Yellow);
+                            break;
+                        default:
+                            await AddToQueue("Unknown Exception", exception.StackTrace, ConsoleColor.DarkYellow);
+                            break;
+                    }
+                }
+            });
+
+            #region Start Threads
             loggingThread.IsBackground = true;
             loggingThread.Start();
+            exceptionThread.IsBackground = true;
+            exceptionThread.Start();
+            #endregion
+
             return Task.CompletedTask;
         }
 
         public static async Task Log(string src, LogSeverity severity, string message, Exception exception = null)
         {
+            //If there is an exception give it to the exception handler
             if (exception != null)
             {
-                await AddToQueue(exception.Source,
-                    $"========({DateTime.UtcNow})========\n" +
-                    $"Exception: {exception}\n " +
-                    $" Message: {exception.Message}\n " +
-                    $" StackTrace: {exception.StackTrace}\n " +
-                    $" InnerEXception: {exception.InnerException}\n" +
-                    $"=====", 
-                    getSeverityColor(severity));
+                exceptionQueue.Add(exception);
                 await Task.CompletedTask;
             }
-            await AddToQueue(src, message, getSeverityColor(severity));
+
+            if (message is null)
+                await Task.CompletedTask;
+
+            if(message.Length != 0)
+                await AddToQueue(src, message, GetSeverityColor(severity));
         }
 
         private static async Task AddToQueue(string src, string msg, ConsoleColor color)
@@ -104,7 +129,7 @@ namespace Cybernaut.Services
             await Task.CompletedTask;
         }
 
-        private static ConsoleColor getSeverityColor(LogSeverity severity = new LogSeverity())
+        private static ConsoleColor GetSeverityColor(LogSeverity severity = new LogSeverity())
         {
             #region Code
             switch (severity)

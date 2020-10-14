@@ -11,7 +11,7 @@ namespace Cybernaut.DataStructs
         public static string ConfigPath { get; set; }
         public static GuildConfig Config { get; set; }
 
-        public async Task InitializeAsync()
+        public Task InitializeAsync()
         {
             string targetDirectory = GlobalData.Config.ConfigLocation;
 
@@ -22,6 +22,7 @@ namespace Cybernaut.DataStructs
                 var json = File.ReadAllText($@"{targetDirectory}\{fileName}.json", new UTF8Encoding(false));
                 Config = JsonConvert.DeserializeObject<GuildConfig>(json); 
             }
+            return Task.CompletedTask;
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Permissions;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,7 +22,6 @@ namespace Cybernaut.Services
     public sealed class LavaLinkService
     {
         private readonly LavaNode _lavaNode;
-        GetService getService = new GetService();
         public LavaLinkService(LavaNode lavaNode)
             => _lavaNode = lavaNode;
                                                                                                                                                                                                                                          /*
@@ -59,14 +59,14 @@ namespace Cybernaut.Services
                 await _lavaNode.JoinAsync(voiceState.VoiceChannel, textChannel);
 
                 #region On join volume/islooping change
-                dynamic json = getService.GetJSONAsync(guild);
+                dynamic json = GetService.GetJSONAsync(guild).ToString();
 
                 var jObj = JsonConvert.DeserializeObject(json);
                 jObj["volume"] = JToken.FromObject(70);
                 jObj["islooping"] = false;
 
                 string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
-                File.WriteAllText(getService.GetConfigLocation(guild), output, new UTF8Encoding(false));
+                File.WriteAllText(GetService.GetConfigLocation(guild).ToString(), output, new UTF8Encoding(false));
                 #endregion
 
                 await LoggingService.LogInformationAsync("JoinAsync", $"Bot joined {voiceState.VoiceChannel.Name} ({voiceState.VoiceChannel.Guild.Id})");
@@ -80,103 +80,156 @@ namespace Cybernaut.Services
             #endregion
         }
 
-        public async Task<Embed> PlayAsync(SocketGuildUser user, IGuild guild, string query, IVoiceState voiceState)
+        public Task Play(SocketGuildUser user, SocketCommandContext context, string query, IVoiceState voiceState)
         {
-            #region Checks
-            #region Config Check
-            Embed embed = await ConfigCheck(guild); //checks if the bot is configured
-            if (embed != null)
-            {
-                return embed;
-            }
-            #endregion
-
-            #region User Channel Check
-            if (user.VoiceChannel == null) //Checks if the user who sent the command is in a VC
-            {
-                return await EmbedHandler.CreateErrorEmbed("Music, Join/Play", "You can't use this command because you aren't in a Voice Channel!");
-            }
-            #endregion
-
-            #region Player Check
-            if (!_lavaNode.HasPlayer(guild)) //Checks if the guild has a player available.
-            {
-                return await EmbedHandler.CreateErrorEmbed("Music, Play", "I'm not connected to a voice channel.");
-            }
-
-            #region Channel Check
-            Embed sameChannel = await SameChannelAsBot(guild, user, "PlayAsync");
-            if (sameChannel != null) //Checks If User is in the same Voice Channel as the bot.
-            {
-                return sameChannel;
-            }
-            #endregion
-
-            #endregion
-            #endregion
-
             #region Code
-            try
+            var thread = new Thread(async () =>
             {
-                //Get the player for that guild.
-                var player = _lavaNode.GetPlayer(guild);
-
-                LavaTrack track;
-                var search = await _lavaNode.SearchYouTubeAsync(query);
-
-                if (search.LoadStatus == LoadStatus.NoMatches)
-                    search = await _lavaNode.SearchSoundCloudAsync(query);
-
-                //If we couldn't find anything, tell the user.
-                if (search.LoadStatus == LoadStatus.NoMatches)
+                #region Checks
+                #region Config Check
+                Embed embed = await ConfigCheck(context.Guild); //checks if the bot is configured
+                if (embed != null)
                 {
-                    return await EmbedHandler.CreateErrorEmbed("Music, Play", $"I wasn't able to find anything for {query}.");
+                    await SendMessage(embed, context);
+                    return;
                 }
-
-                #region Update Volume
-                dynamic json = getService.GetJSONAsync(guild);
-                var jObj = JsonConvert.DeserializeObject(json);
-
-                await player.UpdateVolumeAsync((ushort)jObj.volume);
                 #endregion
 
-                //Get the first track from the search results.
-                track = search.Tracks.FirstOrDefault();
-
-                //If the Bot is already playing music, or if it is paused but still has music in the playlist, Add the requested track to the queue.
-                if (player.Track != null && player.PlayerState is PlayerState.Playing || player.PlayerState is PlayerState.Paused)
+                #region User Channel Check
+                if (user.VoiceChannel == null) //Checks if the user who sent the command is in a VC
                 {
-                    player.Queue.Enqueue(track);
-                    await LoggingService.LogInformationAsync("PlayAsync", $"{track.Title} has been added to the music queue. ({guild.Id})");
-                    return await EmbedHandler.CreateBasicEmbed("Music, Play", $"{track.Title} has been added to queue.", Color.Blue);
+                    await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Join/Play", "You can't use this command because you aren't in a Voice Channel!"), context);
+                    return;
                 }
+                #endregion
 
-                //Player was not playing anything, so lets play the requested track.
-                //NOTE: I need to use some type of database which contains Rick Roll links
+                #region Player Check
+                if (!_lavaNode.HasPlayer(context.Guild)) //Checks if the guild has a player available.
+                {
+                    await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", "I'm not connected to a voice channel."), context);
+                    return;
+                }
+                #endregion
+
+                #region Same Channel As Bot Check
+                Embed sameChannel = await SameChannelAsBot(context.Guild, user, "PlayAsync");
+                if (sameChannel != null) //Checks If User is in the same Voice Channel as the bot.
+                {
+                    await SendMessage(sameChannel, context);
+                    return;
+                }
+                #endregion
+                #endregion
+
+                #region Code
                 try
                 {
-                    if (track.Title.Contains("Rick Astley") || track.Title.Contains("Never gonna") || track.Title.Contains("Cute Little Puppy Doing Cute things"))
-                    {
-                        await player.PlayAsync(track);
-                        return await EmbedHandler.CreateImageEmbed("https://media.giphy.com/media/Vuw9m5wXviFIQ/giphy.gif", $"Everyone who is in the channel {voiceState.VoiceChannel.Name} got rick rolled.");
-                    }
+                    #region Player Creation / Query Search
+                    //Get the player for that guild.
+                    var player = _lavaNode.GetPlayer(context.Guild);
 
-                    await player.PlayAsync(track);
+                    LavaTrack track = null;
+                    //Search Youtube for the query
+                    var search = await _lavaNode.SearchYouTubeAsync(query);
+
+                    //If we couldn't find anything, tell the user.
+                    if (search.LoadStatus == LoadStatus.NoMatches)
+                    {
+                        await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", $"I wasn't able to find anything for {query}."), context);
+                        return;
+                    }
+                    #endregion
+
+                    #region Update Volume
+                    dynamic json = GetService.GetJSONAsync(context.Guild);
+                    var jObj = JsonConvert.DeserializeObject(json);
 
                     bool isLooping = jObj.islooping;
-
                     string status = isLooping == true ? "looping" : "playing";
-                    await LoggingService.LogInformationAsync("PlayAsync", $"Bot now {status}: {track.Title} ({guild.Id})");
-                    return await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: {track.Title}\nUrl: {track.Url}", Color.Blue);
-                }
-                catch (Exception ex) { return await EmbedHandler.CreateErrorEmbed("Music, Play", ex.Message); }
-            }
 
-            //Throws the error in discord
-            catch (Exception ex)
-            {
-                return await EmbedHandler.CreateErrorEmbed("Music, Play", ex.Message);
-            }
+                    await player.UpdateVolumeAsync((ushort)jObj.volume);
+                    #endregion
+
+                    #region Send available songs list
+                    StringBuilder builder = new StringBuilder();
+                    builder.Append("**You have 1m to select a song**\n");
+                    for (int i = 0; i < 5; i++)
+                    {
+                        builder.Append($"{i + 1}. {search.Tracks[i].Title}\n");
+                    }
+
+                    var select = await context.Channel.SendMessageAsync(null, false,
+                        await EmbedHandler.CreateBasicEmbed("Music, Select", builder.ToString(), Color.Blue));
+                    #endregion
+
+                    #region Reaction Check
+                    bool keepLooping = true;
+
+                    Emoji[] emojis = GetService.GetNumbersEmojisAndCancel();
+                    //await select.AddReactionsAsync(emojis);
+                    foreach (var item in emojis)
+                    {
+                        await select.AddReactionAsync(item);
+                    }
+
+                    int count = 0;
+                    while (keepLooping)
+                    {
+                        for (int i = 0; i < emojis.Length && keepLooping; i++)
+                        {
+                            var reactedUsers = await select.GetReactionUsersAsync(emojis[i], 1).FlattenAsync();
+                            foreach (var item in reactedUsers)
+                            {
+                                if (!item.IsBot && item.Id == user.Id)
+                                {
+                                    if (i == emojis.Length - 1)
+                                    {
+                                        await context.Channel.SendMessageAsync(null, false, await EmbedHandler.CreateBasicEmbed("Music, Select", $"{user.Username} canceled the selection.", Color.Blue));
+                                        keepLooping = false;
+                                        return;
+                                    }
+
+                                    keepLooping = false;
+                                    track = search.Tracks[i];
+                                }
+                            }
+                        }
+                        count++;
+
+                        if (count == 17)
+                        {
+                            await context.Channel.SendMessageAsync(null, false, await EmbedHandler.CreateBasicEmbed("Time is up!", "You won't be able to select a song.", Color.Blue));
+                            return;
+                        }
+                        Thread.Sleep(3000);
+                    }
+                    #endregion
+
+                    #region Final Checks
+                    //If the Bot is already playing music, or if it is paused but still has music in the playlist, Add the requested track to the queue.
+                    if (player.Track != null && player.PlayerState is PlayerState.Playing || player.PlayerState is PlayerState.Paused)
+                    {
+                        player.Queue.Enqueue(track);
+                        await LoggingService.LogInformationAsync("PlayAsync", $"{track.Title} has been added to the music queue. ({context.Guild.Id})");
+                        await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Play", $"{track.Title} has been added to queue.", Color.Blue), context);
+                        return;
+                    }
+                    #endregion
+
+                    await player.PlayAsync(track);
+                    await LoggingService.LogInformationAsync("PlayAsync", $"Bot now {status}: {track.Title} ({context.Guild.Id})");
+                    await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: {track.Title}\nUrl: {track.Url}", Color.Blue), context);
+                }
+                catch (Exception ex) //Throws the error in discord
+                {
+                    await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", ex.Message), context);
+                }
+                #endregion
+            });
+
+            thread.IsBackground = true;
+            thread.Start();
+            return Task.CompletedTask;
             #endregion
         }
 
@@ -215,19 +268,19 @@ namespace Cybernaut.Services
                 }
 
                 //removes the vc id from the config !VERY IMPORTANT!
-                dynamic json = getService.GetJSONAsync(guild);
+                dynamic json = GetService.GetJSONAsync(guild);
 
                 var jObj = JsonConvert.DeserializeObject(json);
                 jObj["islooping"] = false;                      //sets islooping to false
 
                 string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
-                File.WriteAllText(getService.GetConfigLocation(guild), output, new UTF8Encoding(false));
+                File.WriteAllText(GetService.GetConfigLocation(guild).ToString(), output, new UTF8Encoding(false));
 
 
                 //Leave the voice channel.
                 await _lavaNode.LeaveAsync(player.VoiceChannel);
 
-                await LoggingService.LogInformationAsync("LeaveAsync", $"Bot has left. ({guild.Name})");
+                await LoggingService.LogInformationAsync("LeaveAsync", $"Bot has left. ({guild.Id})");
                 return await EmbedHandler.CreateBasicEmbed("LeaveAsync", $"I'm sorry that i gave you up :'(.", Color.Purple);
             }
 
@@ -276,7 +329,7 @@ namespace Cybernaut.Services
                 {
                     if (player.Queue.Count < 1 && player.Track != null)
                     {
-                        dynamic json = getService.GetJSONAsync(guild);
+                        dynamic json = GetService.GetJSONAsync(guild);
                         var jObj = JsonConvert.DeserializeObject(json);
 
                         if (jObj.islooping == true)
@@ -428,7 +481,7 @@ namespace Cybernaut.Services
                 if (player.PlayerState is PlayerState.Playing)
                     await player.StopAsync();
 
-                await LoggingService.LogInformationAsync("StopAsync", $"Bot has stopped playback. ({guild.Name})");
+                await LoggingService.LogInformationAsync("StopAsync", $"Bot has stopped playback. ({guild.Id})");
                 return await EmbedHandler.CreateBasicEmbed("Music, Stop", "I Have stopped playback & the playlist has been cleared.", Color.Blue);
             }
 
@@ -440,7 +493,7 @@ namespace Cybernaut.Services
             #endregion
         }
 
-        public async Task<Embed> SetVolumeAsync(IGuild guild, int volume, SocketGuildUser user, ITextChannel textChannel)
+        public async Task<Embed> SetVolumeAsync(IGuild guild, int? volume, SocketGuildUser user, ITextChannel textChannel)
         {
             #region Checks
 
@@ -460,22 +513,26 @@ namespace Cybernaut.Services
             }
             #endregion
 
+            #region Is Null Check
+            dynamic json = GetService.GetJSONAsync(guild);
+            var jObj = JsonConvert.DeserializeObject(json);
+
+            if (volume is null)
+                return await EmbedHandler.CreateBasicEmbed("Music, Volume", $"Volume is set to {jObj["volume"]}", Color.Blue);
+            #endregion
+
             #endregion
 
             #region Code
             if (volume > 150 || volume <= 0) //Checks if the volume is the range 1-150
-            {
                 return await EmbedHandler.CreateBasicEmbed("Music, Volume", $"Volume must be between 1 and 150.", Color.Blue);
-            }
+
             try 
             {
-                dynamic json = getService.GetJSONAsync(guild);
-                var jObj = JsonConvert.DeserializeObject(json);
-
                 jObj["volume"] = volume; //changes the volume 
 
                 string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);         //saves the config
-                File.WriteAllText(getService.GetConfigLocation(guild), output, new UTF8Encoding(false));
+                File.WriteAllText(GetService.GetConfigLocation(guild).ToString(), output, new UTF8Encoding(false));
 
                 var player = _lavaNode.GetPlayer(guild);
                 await player.UpdateVolumeAsync((ushort)jObj.volume);
@@ -593,7 +650,7 @@ namespace Cybernaut.Services
             #endregion
 
             #region Argument check
-            dynamic json = getService.GetJSONAsync(guild);
+            dynamic json = GetService.GetJSONAsync(guild);
             var jObj = JsonConvert.DeserializeObject(json);
 
             if (arg != null)
@@ -627,7 +684,7 @@ namespace Cybernaut.Services
             {
                 jObj.islooping = false;
                 string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
-                File.WriteAllText(getService.GetConfigLocation(guild), output, new UTF8Encoding(false));
+                File.WriteAllText(GetService.GetConfigLocation(guild).ToString(), output, new UTF8Encoding(false));
 
                 await LoggingService.LogInformationAsync("LoopAsync", $"Looping is now disabled. ({guild.Id})");
                 return await EmbedHandler.CreateBasicEmbed("Looping Disabled", $"Looping is now disabled!", Color.Blue);
@@ -636,7 +693,7 @@ namespace Cybernaut.Services
             {
                 jObj.islooping = true;
                 string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
-                File.WriteAllText(getService.GetConfigLocation(guild), output, new UTF8Encoding(false));
+                File.WriteAllText(GetService.GetConfigLocation(guild).ToString(), output, new UTF8Encoding(false));
 
                 await LoggingService.LogInformationAsync("LoopAsync", $"Looping is now enabled. ({guild.Id})");
                 return await EmbedHandler.CreateBasicEmbed("Looping Enabled", $"Looping is now enabled!", Color.Blue);
@@ -689,6 +746,61 @@ namespace Cybernaut.Services
             #endregion
         }
 
+        #region Not in use
+        //public async Task Playlist(SocketCommandContext context, string command = null, string playlistName = null, string query = null)
+        //{
+        //    #region Code
+        //    dynamic json = GetService.GetJSONAsync(context.Guild);
+        //    var jObj = JsonConvert.DeserializeObject(json);
+        //    var playlists = jObj["Playlists"];
+
+
+        //    switch (command)
+        //    {
+        //        case "make":
+        //            break;
+        //        case "add":
+        //            break;
+        //        case "show":
+        //            #region Show Code
+        //            StringBuilder builder = new StringBuilder();
+        //            if (playlistName is null)
+        //            {
+        //                foreach (var item in playlists)
+        //                {
+        //                    builder.Append($"{item.name}\n");
+        //                }
+        //            }
+        //            else
+        //            {
+        //                builder.Append($"**Songs in {playlistName}:**\n");
+        //                foreach (var item in playlists)
+        //                {
+        //                    if (item.name == playlistName) {
+        //                        for (int i = 0; i < item.songs.Count; i++)
+        //                        {
+        //                            builder.Append($"{i + 1}. {item.songs[i]}\n");
+        //                        }
+        //                    }
+        //                }
+        //            }
+        //            #endregion
+
+        //            await context.Channel.SendMessageAsync(null, false, 
+        //                await EmbedHandler.CreateBasicEmbed("Music, Playlists", builder.Length == 0 ? $"{playlistName} was not found." : builder.ToString(), Color.Blue));
+        //            break;
+        //        case "play":
+        //            break;
+        //        default:
+        //            await context.Channel.SendMessageAsync(null, false, 
+        //                await EmbedHandler.CreateBasicEmbed("Music, Playlist", $"{command} is not a valid argument.", Color.Blue));
+        //            break;
+        //    }
+        //    await Task.CompletedTask;
+        //    #endregion
+        //}
+        #endregion
+
         public async Task TrackEnded(TrackEndedEventArgs args)
         {
             #region Code
@@ -699,7 +811,7 @@ namespace Cybernaut.Services
                 return;
             }
 
-            dynamic json = getService.GetJSONAsync(args.Player.VoiceChannel.Guild);
+            dynamic json = GetService.GetJSONAsync(args.Player.VoiceChannel.Guild);
             var jObj = JsonConvert.DeserializeObject(json);
 
             if (jObj.islooping == true)
@@ -759,12 +871,24 @@ namespace Cybernaut.Services
         private async Task<Embed> ConfigCheck(IGuild guild)
         {
             #region Code
-            string configFile = getService.GetConfigLocation(guild);
+            string configFile = GetService.GetConfigLocation(guild).ToString();
             if (!File.Exists(configFile))
             {
                 return await EmbedHandler.CreateBasicEmbed("Configuration needed!", $"Please type `{GlobalData.Config.DefaultPrefix}prefix YourPrefixHere` to configure the bot.", Color.Orange);
             }
             return null;
+            #endregion
+        }
+
+        private Task SendMessage(Embed embed = null, SocketCommandContext context = null)
+        {
+            #region Code
+            if (!(embed is null && context is null))
+            {
+                context.Channel.SendMessageAsync(null, false, embed);
+            }
+
+            return Task.CompletedTask;
             #endregion
         }
     }

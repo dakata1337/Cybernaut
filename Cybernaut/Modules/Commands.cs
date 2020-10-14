@@ -3,6 +3,7 @@ using Cybernaut.Services;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using System.Globalization;
 using System.Threading.Tasks;
 
 namespace Cybernaut.Modules
@@ -73,7 +74,7 @@ namespace Cybernaut.Modules
         [Command("Play")]
         public async Task Play([Remainder] string search)
         {
-            await ReplyAsync(embed: await AudioService.PlayAsync(Context.User as SocketGuildUser, Context.Guild, search, Context.User as IVoiceState));
+            await AudioService.Play(Context.User as SocketGuildUser, Context, search, Context.User as IVoiceState);
         }
 
         [Command("Stop")]
@@ -95,7 +96,7 @@ namespace Cybernaut.Modules
         }
 
         [Command("Volume")]
-        public async Task Volume(int volume)
+        public async Task Volume(int? volume = null)
         {
             await ReplyAsync(embed: await AudioService.SetVolumeAsync(Context.Guild, volume, Context.User as SocketGuildUser, Context.Channel as ITextChannel));
         }
@@ -123,6 +124,13 @@ namespace Cybernaut.Modules
         {
             await ReplyAsync(embed: await AudioService.GetLyricsAsync(Context));
         }
+
+        //Not in use for now
+        //[Command("Playlist")]
+        //public async Task Playlist(string command = null, string playlistName = null, string query = null)
+        //{
+        //    await AudioService.Playlist(Context, command, playlistName, query);
+        //}
         #endregion
     }
 }

@@ -17,8 +17,6 @@ namespace Cybernaut.Services
 {
     public class AutoMessagingService
     {
-        GetService getService = new GetService();
-
         public Task OnUserJoin(SocketGuildUser user)
         {
             #region Code
@@ -41,7 +39,7 @@ namespace Cybernaut.Services
 
             #region Code
             #region Reading config
-            string configFile = getService.GetConfigLocation(user.Guild);
+            string configFile = GetService.GetConfigLocation(user.Guild).ToString();
 
             var json = File.ReadAllText(configFile);
             var jObj = JsonConvert.DeserializeObject<JObject>(json);

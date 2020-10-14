@@ -9,8 +9,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Threading;
 using Victoria;
-using Newtonsoft.Json;
-using Cybernaut.Modules;
+using System.Reflection;
 
 namespace Cybernaut.Services
 {
@@ -24,7 +23,7 @@ namespace Cybernaut.Services
         private readonly AutoMessagingService _autoMessagingService;
         private readonly LavaNode _lavaNode;
         private readonly LavaLinkService _audioService;
-        GetService getService = new GetService();
+        private readonly AssemblyName build = Assembly.GetEntryAssembly().GetName();
 
         public DiscordService()
         {
@@ -86,7 +85,7 @@ namespace Cybernaut.Services
             await _client.LoginAsync(TokenType.Bot, GlobalData.Config.DiscordToken);
             await _client.StartAsync();
 
-            #region Guild Update
+            #region GuildCount Update
             Thread guildsUpdate = new Thread(new ThreadStart(GuildsUpdate));
             guildsUpdate.Start();
             #endregion
@@ -99,6 +98,8 @@ namespace Cybernaut.Services
             try
             {
                 await _lavaNode.ConnectAsync();
+                if (_lavaNode.IsConnected)
+                    await LoggingService.LogInformationAsync("Victoria", "Ready");
                 await _client.SetGameAsync(GlobalData.Config.GameStatus);
             }
             catch (Exception ex)
@@ -141,7 +142,7 @@ namespace Cybernaut.Services
         private Task DeleteConfig(SocketGuild guild)
         {
             #region Code
-            string configFile = getService.GetConfigLocation(guild);
+            string configFile = GetService.GetConfigLocation(guild).ToString();
             if (File.Exists(configFile))
             {
                 File.Delete(configFile);
@@ -151,8 +152,8 @@ namespace Cybernaut.Services
         }
 
         private Task LatencyUpdate(int arg1, int arg2) 
-        { 
-            LoggingService.LogTitle($"Current ping: {arg2}ms");
+        {
+            LoggingService.LogTitle($"Current ping: {arg2}ms | {build.Name} v{build.Version}");
             return Task.CompletedTask;
         }
         #endregion

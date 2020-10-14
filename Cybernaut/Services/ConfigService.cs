@@ -6,18 +6,19 @@ using Discord.Rest;
 using Discord.WebSocket;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Victoria;
 
 namespace Cybernaut.Services
 {
     public class ConfigService
     {
         public List<ulong> whitelistedChannels { get; set; }
-        GetService getService = new GetService();
 
         public async Task<Embed> ChangePrefix(SocketCommandContext context, string prefix)
         {
@@ -34,7 +35,7 @@ namespace Cybernaut.Services
 
             #region Code
             var json = string.Empty;
-            string configFile = getService.GetConfigLocation(context.Guild);
+            string configFile = GetService.GetConfigLocation(context.Guild).ToString();
             bool autoWhitelist = false;
 
             if (File.Exists(configFile))
@@ -79,7 +80,7 @@ namespace Cybernaut.Services
 
         public async Task<Embed> WhiteList(SocketCommandContext context, ulong channelID, string arg)
         {
-            string configFile = getService.GetConfigLocation(context.Guild);
+            string configFile = GetService.GetConfigLocation(context.Guild).ToString();
 
             #region Checks
 
@@ -195,6 +196,7 @@ namespace Cybernaut.Services
         {
             Prefix = prefix == null ? "!" : prefix,
             whitelistedChannels = new List<ulong>(),
+            Playlists = new List<JObject>(),
             AuthRole = 0,
             AuthEnabled = false,
             volume = 70,
@@ -223,7 +225,7 @@ namespace Cybernaut.Services
         #region Auth Functions
         private async Task<Embed> EnableAuthentication(SocketCommandContext context)
         {
-            string configFile = getService.GetConfigLocation(context.Guild);
+            string configFile = GetService.GetConfigLocation(context.Guild).ToString();
 
             #region Enable Authentication 
             var json = File.ReadAllText(configFile);
@@ -244,7 +246,7 @@ namespace Cybernaut.Services
 
         private async Task<Embed> DisableAuthentication(SocketCommandContext context)
         {
-            string configFile = getService.GetConfigLocation(context.Guild);
+            string configFile = GetService.GetConfigLocation(context.Guild).ToString();
 
             #region Disable Authentication
             var json = File.ReadAllText(configFile);
@@ -264,7 +266,7 @@ namespace Cybernaut.Services
 
         private async Task<Embed> ChangeAuthenticationRole(IRole role, SocketCommandContext context)
         {
-            string configFile = getService.GetConfigLocation(context.Guild);
+            string configFile = GetService.GetConfigLocation(context.Guild).ToString();
 
             #region Changes the auth role
             var json = File.ReadAllText(configFile);
@@ -285,7 +287,7 @@ namespace Cybernaut.Services
         private async Task<Embed> AuthenticationStatus(SocketCommandContext context)
         {
             #region JSON
-            dynamic json = getService.GetJSONAsync(context.Guild);
+            dynamic json = GetService.GetJSONAsync(context.Guild);
             var jObj = JsonConvert.DeserializeObject(json);
 
             bool isEnabled = jObj.AuthEnabled;

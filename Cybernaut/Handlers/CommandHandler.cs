@@ -19,7 +19,6 @@ namespace Cybernaut.Handlers
         private readonly DiscordSocketClient _client;
         private readonly CommandService _commands;
         private readonly IServiceProvider _services;
-        private GetService getService = new GetService();
 
         public CommandHandler(IServiceProvider services)
         {
@@ -44,7 +43,7 @@ namespace Cybernaut.Handlers
             _client.MessageReceived += HandleCommandAsync;
         }
 
-        private async Task<Task> HandleCommandAsync(SocketMessage socketMessage)
+        private Task HandleCommandAsync(SocketMessage socketMessage)
         {
             var argPos = 0;
 
@@ -54,7 +53,7 @@ namespace Cybernaut.Handlers
             #endregion
 
             var context = new SocketCommandContext(_client, socketMessage as SocketUserMessage);
-            string configFile = getService.GetConfigLocation(context.Guild);
+            string configFile = GetService.GetConfigLocation(context.Guild).ToString();
             string serverPrefix = string.Empty;
 
             #region Prefix Checks
@@ -62,7 +61,7 @@ namespace Cybernaut.Handlers
             if (File.Exists(configFile))
             {
                 configExists = true;
-                serverPrefix = getPrefix(configFile);                                                   //If the config file exists we use the prefix from there
+                serverPrefix = GetService.GetPrefix(configFile).ToString();                             //If the config file exists we use the prefix from there
                 if (!message.HasStringPrefix(serverPrefix, ref argPos))
                     return Task.CompletedTask;
             }
@@ -111,52 +110,8 @@ namespace Cybernaut.Handlers
                 return;
 
             if (!command.IsSpecified || !result.IsSuccess)
-                await DisplayErrors(result, context);
+                await ErrorHandler.ExecutionErrorHandler(result, context);
                 return;
-        }
-
-        private async Task DisplayErrors(IResult result, ICommandContext context)
-        {
-            #region Code
-            string msg = string.Empty;
-            string title = "Command Error";
-
-            #region Messages
-            switch (result.Error)
-            {
-                case CommandError.BadArgCount:
-                    msg = "This command is not supposed to be used like this.";
-                    break;
-                case CommandError.UnmetPrecondition:
-                    msg = result.ErrorReason;
-                    break;
-                case CommandError.ObjectNotFound:
-                    msg = "The specified object was not found.";
-                    break;
-                case CommandError.UnknownCommand:
-                    msg = "Unknown command.";
-                    break;
-                default:
-                    if (result.ErrorReason.Contains("Could not find file"))
-                    {
-                        msg = $"Please type `{GlobalData.Config.DefaultPrefix}prefix YourPrefixHere` to configure the bot.";
-                        title = "Configuration needed!";
-                    }
-                    else
-                    {
-                        await LoggingService.LogCriticalAsync("CommandError", 
-                            $"{context.Message.Author}: {context.Message.Content} => {result.ErrorReason}  ({context.Guild.Id} | {context.Guild.Name})");
-                        msg = "Internal Bot error.";
-                    }
-                    break;
-            }
-            #endregion
-
-            if (msg != null)
-            {
-                await context.Channel.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed(title, msg, Color.Orange));
-            }
-            #endregion
         }
 
         private async Task<Task> LogAsync(LogMessage log)
@@ -172,14 +127,6 @@ namespace Cybernaut.Handlers
                     break;
             }
             return Task.CompletedTask;
-            #endregion
-        }
-
-        private string getPrefix(string configFile)
-        {
-            #region Code
-            dynamic stuff = JsonConvert.DeserializeObject(File.ReadAllText(configFile));
-            return stuff.Prefix;
             #endregion
         }
     }

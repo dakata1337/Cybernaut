@@ -14,8 +14,6 @@ namespace Cybernaut.Handlers
 {
     public static class EmbedHandler
     {
-        static GetService getService = new GetService();
-
         public static async Task<Embed> CreateBasicEmbed(string title, string description, Color color)
         {
             var embed = await Task.Run(() => (new EmbedBuilder()
@@ -47,7 +45,7 @@ namespace Cybernaut.Handlers
         public static async Task<Embed> DisplayInfoAsync(SocketCommandContext context, Color color)
         {
             #region Code
-            string configFile = getService.GetConfigLocation(context.Guild);
+            string configFile = GetService.GetConfigLocation(context.Guild).ToString();
 
             #region Custom Fields
 
