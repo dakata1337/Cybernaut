@@ -3,6 +3,7 @@ using Cybernaut.Services;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using System;
 using System.Globalization;
 using System.Threading.Tasks;
 
@@ -46,9 +47,9 @@ namespace Cybernaut.Modules
         }
 
         [Command("whitelist"), RequireUserPermission(GuildPermission.ManageChannels)]
-        public async Task Whitelist(string arg, IChannel channel)
+        public async Task Whitelist(string arg, IChannel channel = null)
         {
-            await ReplyAsync(embed: await configService.WhiteList(Context, channel.Id, arg));
+            await ReplyAsync(embed: await configService.WhiteList(Context, channel, arg));
         }
 
         [Command("auth"), RequireUserPermission(GuildPermission.Administrator)]
@@ -124,13 +125,6 @@ namespace Cybernaut.Modules
         {
             await ReplyAsync(embed: await AudioService.GetLyricsAsync(Context));
         }
-
-        //Not in use for now
-        //[Command("Playlist")]
-        //public async Task Playlist(string command = null, string playlistName = null, string query = null)
-        //{
-        //    await AudioService.Playlist(Context, command, playlistName, query);
-        //}
         #endregion
     }
 }

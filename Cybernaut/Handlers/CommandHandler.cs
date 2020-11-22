@@ -94,11 +94,8 @@ namespace Cybernaut.Handlers
             #endregion
 
             #region Last Whitelist & Config Check
-            if (whitelistedChannel == context.Channel.Id && configExists)
-            {
-                var result = _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
-                return result;
-            }
+            if (whitelistedChannel == context.Channel.Id && configExists || !configExists)
+                return _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
             #endregion
 
             return Task.CompletedTask;

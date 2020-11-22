@@ -23,8 +23,8 @@ namespace Cybernaut.Services
             if (user.IsBot)
                 return Task.CompletedTask;
 
-            var t = new Thread(async () => await UserAuth(user));
-            t.Start();
+            var AuthThread = new Thread(async () => await UserAuth(user));
+            AuthThread.Start();
 
             return Task.CompletedTask;
             #endregion
@@ -32,14 +32,9 @@ namespace Cybernaut.Services
 
         public async Task<Task> UserAuth(SocketGuildUser user)
         {
-            #region Checks
-            if (user.IsBot)
-                await Task.CompletedTask;
-            #endregion
-
             #region Code
             #region Reading config
-            string configFile = GetService.GetConfigLocation(user.Guild).ToString();
+            string configFile = GetService.GetConfigLocation(user.Guild);
 
             var json = File.ReadAllText(configFile);
             var jObj = JsonConvert.DeserializeObject<JObject>(json);
@@ -65,7 +60,8 @@ namespace Cybernaut.Services
             await user.GetOrCreateDMChannelAsync();
 
             //Reaction Message
-            IMessage message = await user.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed($"Are you a robot?", $"Please confirm that you are not a robot 🤖", Color.Blue));
+            IMessage message = await user.SendMessageAsync(embed: await EmbedHandler.CreateBasicEmbed($"Are you a robot?", 
+                $"Please confirm that you are not a robot 🤖", Color.Blue));
             var checkEmoji = new Emoji("✅");
             await message.AddReactionAsync(checkEmoji);
 
@@ -90,10 +86,8 @@ namespace Cybernaut.Services
                 }
             }
             #endregion
-
-            #endregion
-
             return Task.CompletedTask;
+            #endregion
         }
 
         public async Task OnGuildJoin(SocketGuild guild)

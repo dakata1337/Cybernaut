@@ -21,7 +21,7 @@ namespace Cybernaut.DataStructs
             {
                 json = JsonConvert.SerializeObject(GenerateNewConfig(), Formatting.Indented);
                 File.WriteAllText("config.json", json, new UTF8Encoding(false));
-                await LoggingService.LogCriticalAsync("Config", "Config.json was created. Please modify the config to your liking.");
+                await LoggingService.LogCriticalAsync("Config", "config.json was created. Please modify the config to your liking.");
                 await Task.Delay(-1);
             }
 
@@ -29,9 +29,7 @@ namespace Cybernaut.DataStructs
             Config = JsonConvert.DeserializeObject<BotConfig>(json);
 
             if (!Directory.Exists(Config.ConfigLocation))
-            {
                 Directory.CreateDirectory(Config.ConfigLocation);
-            }
         }
 
         private static BotConfig GenerateNewConfig() => new BotConfig

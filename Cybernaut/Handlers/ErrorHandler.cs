@@ -34,17 +34,9 @@ namespace Cybernaut.Handlers
                     msg = "Unknown command.";
                     break;
                 default:
-                    if (result.ErrorReason.Contains("Could not find file"))
-                    {
-                        msg = $"Please type `{GlobalData.Config.DefaultPrefix}prefix YourPrefixHere` to configure the bot.";
-                        title = "Configuration needed!";
-                    }
-                    else
-                    {
-                        await LoggingService.LogCriticalAsync("CommandError",
+                    await LoggingService.LogCriticalAsync("CommandError",
                             $"{context.Message.Author}: {context.Message.Content} => {result.ErrorReason}  ({context.Guild.Id} | {context.Guild.Name})");
-                        msg = "Internal Bot error.";
-                    }
+                    msg = $"Internal Bot error. Please report to {GlobalData.Config.BotOwner}";
                     break;
             }
             #endregion
@@ -52,6 +44,7 @@ namespace Cybernaut.Handlers
             if (msg != null)
             {
                 await context.Channel.SendMessageAsync(embed: await EmbedHandler.CreateErrorEmbed(title, msg));
+                await LoggingService.LogCriticalAsync("ErrorHandler", $"Error: {result.Error }\nError reason: {result.ErrorReason}");
             }
             #endregion
         }

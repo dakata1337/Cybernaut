@@ -4,10 +4,12 @@ using Discord;
 using Discord.Net;
 using Discord.WebSocket;
 using Microsoft.VisualBasic.CompilerServices;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.IO.Compression;
+using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,9 +22,6 @@ namespace Cybernaut.Services
 
         public static async Task LogCriticalAsync(string source, string message, Exception exc = null)
             => await Log(source, LogSeverity.Critical, message, exc);
-
-        public static void LogTitle(string message)
-            => Console.Title = message;
 
         private static BlockingCollection<string> sourceQueue = new BlockingCollection<string>();
         private static BlockingCollection<string> messageQueue = new BlockingCollection<string>();
@@ -77,11 +76,11 @@ namespace Cybernaut.Services
                     Exception exception = exceptionQueue.Take();
                     switch (exception)
                     {
-                        case GatewayReconnectException: case WebSocketClosedException:
+                        case GatewayReconnectException: case WebSocketClosedException: case WebSocketException:
                             await AddToQueue("Gateway", exception.Message, ConsoleColor.Yellow);
                             break;
                         default:
-                            await AddToQueue("Unknown Exception", exception.StackTrace, ConsoleColor.DarkYellow);
+                            await AddToQueue("Unknown Exception", exception.ToString(), ConsoleColor.DarkYellow);
                             break;
                     }
                 }
@@ -108,9 +107,24 @@ namespace Cybernaut.Services
 
             if (message is null)
                 await Task.CompletedTask;
-
-            if(message.Length != 0)
+            else if(message.Length != 0)
                 await AddToQueue(src, message, GetSeverityColor(severity));
+        }
+
+        public static async Task LogVictoriaAsync(string src, LogSeverity severity, string message, Exception exception = null)
+        {
+            if (exception != null)
+            {
+                exceptionQueue.Add(exception);
+                await Task.CompletedTask;
+            }
+            #if DEBUG
+            if (message is null)
+                await Task.CompletedTask;
+            else if (message.Length != 0)
+                if (severity != LogSeverity.Info)
+                    await AddToQueue(src, message, GetSeverityColor(severity));
+            #endif
         }
 
         private static async Task AddToQueue(string src, string msg, ConsoleColor color)

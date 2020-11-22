@@ -35,52 +35,43 @@ namespace Cybernaut.Services
 
             #region Code
             var json = string.Empty;
-            string configFile = GetService.GetConfigLocation(context.Guild).ToString();
+            string configFile = GetService.GetConfigLocation(context.Guild);
             bool autoWhitelist = false;
 
             if (File.Exists(configFile))
             {
                 json = File.ReadAllText(configFile);
+                dynamic jObj = JsonConvert.DeserializeObject(json);
 
-                dynamic jsonObj = JsonConvert.DeserializeObject(json);
-
-                if(jsonObj.Prefix == prefix)
-                {
+                if(jObj["Prefix"] == prefix)
                     return await EmbedHandler.CreateBasicEmbed("Configuration Error.", '\u0022' + prefix + '\u0022' + " is already the prefix.", Color.Orange);
-                }
 
-                jsonObj["Prefix"] = prefix;
+                jObj["Prefix"] = prefix;
 
-                string output = JsonConvert.SerializeObject(jsonObj, Formatting.Indented);
-                File.WriteAllText(configFile, output);
+                File.WriteAllText(configFile, JsonConvert.SerializeObject(jObj, Formatting.Indented));
             }
             else
             {
                 json = JsonConvert.SerializeObject(GenerateNewConfig(prefix), Formatting.Indented);
-
-                dynamic count = JsonConvert.DeserializeObject(json);
-
                 var jObj = JsonConvert.DeserializeObject<JObject>(json);
-                if (count["whitelistedChannels"].Count == 0)
+
+                if (jObj["whitelistedChannels"].Value<JArray>().Count == 0)
                 {
-                    // or use `JObject.Parse`
-                    ulong[] ts = new ulong[1];
-                    ts[0] = context.Channel.Id;
+                    ulong[] ts = { context.Channel.Id };
                     jObj["whitelistedChannels"] = JToken.FromObject(ts);
                     autoWhitelist = true;
                 }
-
-                string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
-                File.WriteAllText(configFile, output, new UTF8Encoding(false));
+                File.WriteAllText(configFile, JsonConvert.SerializeObject(jObj, Formatting.Indented), new UTF8Encoding(false));
             }
-            return await EmbedHandler.CreateBasicEmbed("Configuration Changed.",  autoWhitelist == true ? $"The prefix was successfully changed to \u0022{prefix}\u0022.\nAdded {context.Channel.Name} to the channel whitelist." : 
-                $"The prefix was successfully changed to \u0022{prefix}\u0022.", Color.Blue);
+            return await EmbedHandler.CreateBasicEmbed("Configuration Changed.",  autoWhitelist == true ? 
+                $"The prefix was successfully changed to \"{prefix}\".\nAdded **{context.Channel.Name}** to the channel whitelist." : 
+                $"The prefix was successfully changed to \"{prefix}\".", Color.Blue);
             #endregion
         }
 
-        public async Task<Embed> WhiteList(SocketCommandContext context, ulong channelID, string arg)
+        public async Task<Embed> WhiteList(SocketCommandContext context, IChannel channel, string arg)
         {
-            string configFile = GetService.GetConfigLocation(context.Guild).ToString();
+            string configFile = GetService.GetConfigLocation(context.Guild);
 
             #region Checks
 
@@ -90,30 +81,34 @@ namespace Cybernaut.Services
             #endregion
 
             #region Text Channel Check
-            if (context.Guild.GetChannel(channelID) != context.Guild.GetTextChannel(channelID)) //Checks if the selected channel is text channel
-                return await EmbedHandler.CreateBasicEmbed("Configuration Error.", $"{context.Guild.GetChannel(channelID)} is not a text channel.", Color.Orange);
+            if (channel != null)
+            {
+                if (context.Guild.GetChannel(channel.Id) != context.Guild.GetTextChannel(channel.Id)) //Checks if the selected channel is text channel
+                    return await EmbedHandler.CreateBasicEmbed("Configuration Error.", $"{context.Guild.GetChannel(channel.Id)} is not a text channel.", Color.Orange);
+            }
             #endregion
 
             #endregion
 
             #region Code
-            var json = File.ReadAllText(configFile);
-            dynamic jsonObj = JsonConvert.DeserializeObject(json);
+            dynamic jsonObj = JsonConvert.DeserializeObject(File.ReadAllText(configFile));
 
             ulong[] ogArray = jsonObj.whitelistedChannels.ToObject<ulong[]>();
-            var jObj = JsonConvert.DeserializeObject<JObject>(json);
-
-            List<ulong> list = new List<ulong>(ogArray);
-            string output = string.Empty;
+            List<ulong> newList = new List<ulong>(ogArray);
 
             switch (arg)
             {
                 case "add":
                     #region Checks
 
+                    #region Is Channel Mentioned
+                    if(channel is null)
+                        return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"No channel specified.");
+                    #endregion
+
                     #region Channel Check
-                    if (context.Guild.GetChannel(channelID) != context.Guild.GetTextChannel(channelID)) //Checks if the selected channel is text channel
-                        return await EmbedHandler.CreateBasicEmbed("Configuration Error.", $"{context.Guild.GetChannel(channelID)} is not a text channel.", Color.Orange);
+                    if (context.Guild.GetChannel(channel.Id) != context.Guild.GetTextChannel(channel.Id)) //Checks if the selected channel is text channel
+                        return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"{context.Guild.GetChannel(channel.Id)} is not a text channel.");
                     #endregion
 
                     #region Whitelist Limit Check
@@ -123,40 +118,52 @@ namespace Cybernaut.Services
                     }
                     #endregion
 
+                    #region Check if whitelisted
+                    foreach (ulong item in ogArray) 
+                    {
+                        if (item == channel.Id)
+                            return await EmbedHandler.CreateBasicEmbed("Configuration Error.", $"{context.Guild.GetChannel(item)} is already whitelisted!", Color.Orange);
+                    }
+                    #endregion
+
                     #endregion
                     #region Add Code
-                    foreach (ulong item in ogArray) //Checks if the channel is already whitelisted
-                    {
-                        if (item == channelID)
-                        {
-                            return await EmbedHandler.CreateBasicEmbed("Configuration Error.", $"{context.Guild.GetChannel(item)} is already whitelisted!", Color.Orange);
-                        }
-                    }
 
-                    list.Add(channelID);
-                    ogArray = list.ToArray();
+                    //Add the channel id to a List
+                    newList.Add(channel.Id);
 
-                    // or use `JObject.Parse`
-                    jObj["whitelistedChannels"] = JToken.FromObject(ogArray);
+                    //Overwrite the jsonObj file with the updated array
+                    jsonObj["whitelistedChannels"] = JToken.FromObject(newList.ToArray());
 
-                    output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
-                    File.WriteAllText(configFile, output);
+                    //Saving to file
+                    File.WriteAllText(configFile,
+                        JsonConvert.SerializeObject(jsonObj, Formatting.Indented));
                     #endregion
-                    return await EmbedHandler.CreateBasicEmbed("Configuration Changed.", $"{context.Guild.GetChannel(channelID)} was whitelisted.", Color.Blue);
+                    return await EmbedHandler.CreateBasicEmbed("Configuration Changed.", $"{context.Guild.GetChannel(channel.Id)} was whitelisted.", Color.Blue);
 
                 case "remove":
                     #region Checks
 
+                    #region Minimum Check
+                    if (newList.Count == 1)
+                        return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"You can't have less than 1 whitelisted channel.");
+                    #endregion
+
+                    #region Is Channel Mentioned
+                    if (channel is null)
+                        return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"No channel specified.");
+                    #endregion
+
                     #region Channel Check
-                    if (context.Guild.GetChannel(channelID) != context.Guild.GetTextChannel(channelID)) //Checks if the selected channel is text channel
-                        return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"{context.Guild.GetChannel(channelID)} is not a text channel.");
+                    if (context.Guild.GetChannel(channel.Id) != context.Guild.GetTextChannel(channel.Id)) //Checks if the selected channel is text channel
+                        return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"{context.Guild.GetChannel(channel.Id)} is not a text channel.");
                     #endregion
 
                     #region In List Check
                     bool found = false;
                     foreach (ulong item in ogArray)
                     {
-                        if (item == channelID)
+                        if (item == channel.Id)
                         {
                             found = true;
                             break;
@@ -164,30 +171,32 @@ namespace Cybernaut.Services
                     }
 
                     if(!found)
-                        return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"{context.Guild.GetChannel(channelID)} is not whitelisted.");
-                    #endregion
-
-                    #region Minimum Check
-                    if (list.Count == 1)
-                    {
-                        return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"You can't have less than 1 whitelisted channel.");
-                    }
+                        return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"{context.Guild.GetChannel(channel.Id)} is not whitelisted.");
                     #endregion
 
                     #endregion
                     #region Remove Code
-                    list.Remove(channelID);
-                    ogArray = list.ToArray();
+                    newList.Remove(channel.Id);
 
-                    jObj["whitelistedChannels"] = JToken.FromObject(ogArray);
+                    jsonObj["whitelistedChannels"] = JToken.FromObject(newList.ToArray());
 
-                    output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
-                    File.WriteAllText(configFile, output);
+                    File.WriteAllText(configFile,
+                        JsonConvert.SerializeObject(jsonObj, Formatting.Indented));
                     #endregion
-                    return await EmbedHandler.CreateBasicEmbed("Configuration Changed.", $"{context.Guild.GetChannel(channelID)} was removed from the whitelist.", Color.Blue);
-
+                    return await EmbedHandler.CreateBasicEmbed("Configuration Changed.", $"{context.Guild.GetChannel(channel.Id)} was removed from the whitelist.", Color.Blue);
+                case "list":
+                    #region Read Whitelisted Channels
+                    StringBuilder builder = new StringBuilder();
+                    builder.Append("Whitelisted channels:\n");
+                    for (int i = 0; i < ogArray.Length; i++)
+                    {
+                        var whitelistedChannel = context.Guild.GetChannel(ogArray[i]);
+                        builder.Append($"{i + 1}. {whitelistedChannel.Name} (ID: {whitelistedChannel.Id})\n");
+                    }
+                    #endregion
+                    return await EmbedHandler.CreateBasicEmbed("Whitelist, List", $"{builder}", Color.Blue);
                 default:
-                    return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"{arg} is not a valid argument. Please type {jObj["Prefix"]}commands for help.");
+                    return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"{arg} is not a valid argument. Please type {jsonObj["Prefix"]}commands for help.");
             }
             #endregion
         }
@@ -196,7 +205,6 @@ namespace Cybernaut.Services
         {
             Prefix = prefix == null ? "!" : prefix,
             whitelistedChannels = new List<ulong>(),
-            Playlists = new List<JObject>(),
             AuthRole = 0,
             AuthEnabled = false,
             volume = 70,
@@ -225,11 +233,10 @@ namespace Cybernaut.Services
         #region Auth Functions
         private async Task<Embed> EnableAuthentication(SocketCommandContext context)
         {
-            string configFile = GetService.GetConfigLocation(context.Guild).ToString();
+            string configFile = GetService.GetConfigLocation(context.Guild);
 
             #region Enable Authentication 
-            var json = File.ReadAllText(configFile);
-            var jObj = JsonConvert.DeserializeObject<JObject>(json);
+            var jObj = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(configFile));
 
             if ((bool)jObj["AuthEnabled"] == true)
                 return await EmbedHandler.CreateErrorEmbed("Configuration Error!", "Authentication is already enabled.");
@@ -246,11 +253,10 @@ namespace Cybernaut.Services
 
         private async Task<Embed> DisableAuthentication(SocketCommandContext context)
         {
-            string configFile = GetService.GetConfigLocation(context.Guild).ToString();
+            string configFile = GetService.GetConfigLocation(context.Guild);
 
             #region Disable Authentication
-            var json = File.ReadAllText(configFile);
-            var jObj = JsonConvert.DeserializeObject<JObject>(json);
+            var jObj = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(configFile));
 
             if ((bool)jObj["AuthEnabled"] == false)
                 return await EmbedHandler.CreateErrorEmbed("Configuration Error!", "Authentication is already disabled.");
@@ -266,14 +272,13 @@ namespace Cybernaut.Services
 
         private async Task<Embed> ChangeAuthenticationRole(IRole role, SocketCommandContext context)
         {
-            string configFile = GetService.GetConfigLocation(context.Guild).ToString();
+            string configFile = GetService.GetConfigLocation(context.Guild);
 
             #region Changes the auth role
-            var json = File.ReadAllText(configFile);
-            var jObj = JsonConvert.DeserializeObject<JObject>(json);
+            var jObj = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(configFile));
 
             if ((ulong)jObj["AuthRole"] == role.Id)
-                return await EmbedHandler.CreateErrorEmbed("Configuration Error!", $"{role.Name} is already the authentication role.");
+                return await EmbedHandler.CreateErrorEmbed("Configuration Error!", $"\"{role.Name}\" is already the authentication role.");
 
             jObj["AuthRole"] = role.Id;
 
@@ -281,7 +286,7 @@ namespace Cybernaut.Services
             File.WriteAllText(configFile, output);
             #endregion
 
-            return await EmbedHandler.CreateBasicEmbed("Authentication Configuration.", $"{role.Name} is now the authentication role.", Color.Blue);
+            return await EmbedHandler.CreateBasicEmbed("Authentication Configuration.", $"\"{role.Name}\" is now the authentication role.", Color.Blue);
         }
 
         private async Task<Embed> AuthenticationStatus(SocketCommandContext context)
@@ -290,8 +295,9 @@ namespace Cybernaut.Services
             dynamic json = GetService.GetJSONAsync(context.Guild);
             var jObj = JsonConvert.DeserializeObject(json);
 
-            bool isEnabled = jObj.AuthEnabled;
-            ulong roleID = jObj.AuthRole;
+            bool isEnabled = jObj["AuthEnabled"];
+            ulong roleID = jObj["AuthRole"];
+            string role = roleID == 0 ? "not set" : $"{context.Guild.GetRole(roleID).Name} (ID: {roleID})";
             #endregion
 
             #region Custom Embed
@@ -300,7 +306,7 @@ namespace Cybernaut.Services
             {
                 Name = "**Settings**",
                 Value = $"Enabled: {isEnabled}\n" +
-                $"Role: {context.Guild.GetRole(roleID).Name}",
+                $"Role: {role}",
                 IsInline = false
             });
             #endregion

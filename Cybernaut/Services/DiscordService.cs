@@ -23,7 +23,6 @@ namespace Cybernaut.Services
         private readonly AutoMessagingService _autoMessagingService;
         private readonly LavaNode _lavaNode;
         private readonly LavaLinkService _audioService;
-        private readonly AssemblyName build = Assembly.GetEntryAssembly().GetName();
 
         public DiscordService()
         {
@@ -38,8 +37,25 @@ namespace Cybernaut.Services
             _audioService = _services.GetRequiredService<LavaLinkService>();
             #endregion
 
-            SubscribeLavaLinkEvents();
             SubscribeDiscordEvents();
+            SubscribeLavaLinkEvents();
+        }
+
+        private void SubscribeDiscordEvents()
+        {
+            _client.Ready += ReadyAsync;
+            _client.Log += LogAsync;
+
+            _client.JoinedGuild += _autoMessagingService.OnGuildJoin;
+            _client.LeftGuild += DeleteConfig;
+            _client.UserJoined += _autoMessagingService.OnUserJoin;
+            _client.GuildAvailable += GuildAvailable;
+        }
+
+        private void SubscribeLavaLinkEvents()
+        {
+            _lavaNode.OnLog += LogVictoriaAsync;
+            _lavaNode.OnTrackEnded += _audioService.TrackEnded;
         }
 
         public async Task InitializeAsync()
@@ -60,26 +76,6 @@ namespace Cybernaut.Services
             await _guildData.InitializeAsync(); //Initializes GuildData
         }
 
-        private void SubscribeDiscordEvents()
-        {
-            _client.Ready += ReadyAsync;
-            _client.Log += LogAsync;
-
-            _client.JoinedGuild += _autoMessagingService.OnGuildJoin;
-            _client.LeftGuild += DeleteConfig;
-            _client.UserJoined += _autoMessagingService.OnUserJoin;
-            _client.LatencyUpdated += LatencyUpdate;
-            _client.GuildAvailable += GuildAvailable;
-        }
-
-        private void SubscribeLavaLinkEvents()
-        {
-            #if DEBUG
-            _lavaNode.OnLog += LogAsync;
-            #endif
-            _lavaNode.OnTrackEnded += _audioService.TrackEnded;
-        }
-
         private async Task<Task> ClientConnect()
         {
             await _client.LoginAsync(TokenType.Bot, GlobalData.Config.DiscordToken);
@@ -98,8 +94,6 @@ namespace Cybernaut.Services
             try
             {
                 await _lavaNode.ConnectAsync();
-                if (_lavaNode.IsConnected)
-                    await LoggingService.LogInformationAsync("Victoria", "Ready");
                 await _client.SetGameAsync(GlobalData.Config.GameStatus);
             }
             catch (Exception ex)
@@ -150,18 +144,16 @@ namespace Cybernaut.Services
             return Task.CompletedTask;
             #endregion
         }
-
-        private Task LatencyUpdate(int arg1, int arg2) 
-        {
-            LoggingService.LogTitle($"Current ping: {arg2}ms | {build.Name} v{build.Version}");
-            return Task.CompletedTask;
-        }
         #endregion
 
         #region Logging
         private async Task LogAsync(LogMessage logMessage)
         {
             await LoggingService.Log(logMessage.Source, logMessage.Severity, logMessage.Message, logMessage.Exception);
+        }
+        private async Task LogVictoriaAsync(LogMessage logMessage)
+        {
+            await LoggingService.LogVictoriaAsync(logMessage.Source, logMessage.Severity, logMessage.Message, logMessage.Exception);
         }
         #endregion
     }

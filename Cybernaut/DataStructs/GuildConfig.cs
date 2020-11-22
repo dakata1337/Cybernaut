@@ -10,7 +10,6 @@ namespace Cybernaut.DataStructs
     {
         public string Prefix { get; set; }
         public List<ulong> whitelistedChannels { get; set; }
-        public List<JObject> Playlists { get; set; }
         public ulong AuthRole { get; set; }
         public bool AuthEnabled { get; set; }
         public int volume { get; set; }
