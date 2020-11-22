@@ -55,9 +55,9 @@ NOTE: The first time you start the bot will create a config file which you need 
 -disable - Disables on join user authentication ```Usage: !auth disable ```<br/>
 -role - The role that is given when authenticated ```Usage: !auth role @role ```<br/>
 * Whitelist:<br/>
--add #ChannelName - Whitelists the specified channel
--remove #ChannelName - Removes the specified channel from the whitelist
--list - Shows all whitelisted channels
+-add #ChannelName - Whitelists the specified channel<br/>
+-remove #ChannelName - Removes the specified channel from the whitelist<br/>
+-list - Shows all whitelisted channels<br/>
 
 ## Support
 If you have any questions feel free to join my discord and ask your question in the chat room called "Questions" in the category "Programing"
