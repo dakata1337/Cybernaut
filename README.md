@@ -13,10 +13,11 @@
 
 ## Built With
 
-* [DotNet Core (Version - 3.1)](https://dotnet.microsoft.com/download/dotnet-core/2.2) - DotNet Core framework
-* [Discord.Net (Version - 2.3.0-dev-20200904.2)](https://github.com/RogueException/Discord.Net) - Discord Library
+* [DotNet Core (Version - 3.1)](https://dotnet.microsoft.com/download/dotnet-core/3.1) - DotNet Core framework
+* [Discord.Net (Version - 2.3.0-dev-20201122.3)](https://github.com/RogueException/Discord.Net) - Discord Library
 * [Victoria (Version - 5.1.9)](https://github.com/Yucked/Victoria) - LavaLink Library
-* [LavaLink (Version - 3.3.1.2)](https://github.com/Frederikam/Lavalink) - LavaLink
+* [LavaLink (Version - 3.3.2.1)](https://github.com/Frederikam/Lavalink) - LavaLink
+* [Microsoft Dependency Injection (Version - 5.0.0)](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection?view=aspnetcore-5.0) - Microsoft Dependency Injection
 
 ## Installation
 
