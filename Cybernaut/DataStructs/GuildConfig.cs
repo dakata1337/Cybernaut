@@ -10,9 +10,11 @@ namespace Cybernaut.DataStructs
     {
         public string Prefix { get; set; }
         public List<ulong> whitelistedChannels { get; set; }
-        public ulong AuthRole { get; set; }
-        public bool AuthEnabled { get; set; }
+        public bool GiveRoleOnJoin { get; set; }
+        public ulong RoleOnJoin { get; set; }
+        public bool RequireCAPTCHA { get; set; }
         public int volume { get; set; }
         public bool islooping { get; set; }
+        public JObject[] mutedUsers { get; set; }
     }
 }

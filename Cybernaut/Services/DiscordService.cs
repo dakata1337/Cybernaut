@@ -23,6 +23,7 @@ namespace Cybernaut.Services
         private readonly AutoMessagingService _autoMessagingService;
         private readonly LavaNode _lavaNode;
         private readonly LavaLinkService _audioService;
+        private readonly UserManagementService _userManagementService;
 
         public DiscordService()
         {
@@ -35,6 +36,7 @@ namespace Cybernaut.Services
             _autoMessagingService = _services.GetRequiredService<AutoMessagingService>();
             _lavaNode = _services.GetRequiredService<LavaNode>();
             _audioService = _services.GetRequiredService<LavaLinkService>();
+            _userManagementService = _services.GetRequiredService<UserManagementService>();
             #endregion
 
             SubscribeDiscordEvents();
@@ -95,6 +97,7 @@ namespace Cybernaut.Services
             {
                 await _lavaNode.ConnectAsync();
                 await _client.SetGameAsync(GlobalData.Config.GameStatus);
+                await _userManagementService.InitializeAsync(); //Initilizing UMS
             }
             catch (Exception ex)
             {
@@ -114,6 +117,7 @@ namespace Cybernaut.Services
                 .AddSingleton<LavaNode>()
                 .AddSingleton(new LavaConfig())
                 .AddSingleton<LavaLinkService>()
+                .AddSingleton<UserManagementService>()
                 .BuildServiceProvider();
         }
 

@@ -26,9 +26,7 @@ namespace Cybernaut.Services
         private readonly LavaNode _lavaNode;
         public LavaLinkService(LavaNode lavaNode)
             => _lavaNode = lavaNode;
-                                                                                                                                                                                                                                         /*
-         [================Actual Code================]
-                                                                                                                                                                                                                                         */
+
         public async Task<Embed> JoinAsync(IGuild guild, IVoiceState voiceState, ITextChannel textChannel, SocketGuildUser user)
         {
             #region Checks
@@ -769,6 +767,12 @@ namespace Cybernaut.Services
             File.WriteAllText(file, lyrics);
 
             //Send File
+            if(new System.IO.FileInfo(file).Length == 0)
+            {
+                File.Delete(file);
+                return await EmbedHandler.CreateErrorEmbed("Music, Lyrics", "Sorry we couldn't find the lyrics you requested.");
+            }
+
             await context.Message.Author.SendFileAsync(file, $"We found lyrics for the song: {player.Track.Title}");
 
             //Delete File

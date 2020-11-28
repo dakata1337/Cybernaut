@@ -74,9 +74,20 @@ namespace Cybernaut.Services
                 while (true)
                 {
                     Exception exception = exceptionQueue.Take();
+                    await LogToFile(
+                        exception.Message + Environment.NewLine +
+                        exception.StackTrace + Environment.NewLine +
+                        exception.InnerException + Environment.NewLine, latestLog);
+
                     switch (exception)
                     {
-                        case GatewayReconnectException: case WebSocketClosedException: case WebSocketException:
+                        case GatewayReconnectException: 
+                            await AddToQueue("Gateway", exception.Message, ConsoleColor.Yellow);
+                            break;
+                        case WebSocketClosedException:
+                            await AddToQueue("Gateway", exception.Message, ConsoleColor.Yellow);
+                            break;
+                        case WebSocketException:
                             await AddToQueue("Gateway", exception.Message, ConsoleColor.Yellow);
                             break;
                         default:

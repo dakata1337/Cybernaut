@@ -57,6 +57,30 @@ namespace Cybernaut.Modules
         {
             await ReplyAsync(embed: await configService.Authentication(arg, role, Context));
         }
+
+        [Command("mute"), RequireUserPermission(GuildPermission.MuteMembers)]
+        public async Task Mute(IUser user, string time)
+        {
+            await ReplyAsync(embed: await commandsService.Mute(user, time, Context));
+        }
+
+        [Command("unmute"), RequireUserPermission(GuildPermission.MuteMembers)]
+        public async Task Mute(IUser user)
+        {
+            await ReplyAsync(embed: await commandsService.Unmute(user, Context));
+        }
+
+        [Command("kick"), RequireUserPermission(GuildPermission.KickMembers)]
+        public async Task Kick(IUser user, [Remainder]string reason = null)
+        {
+            await ReplyAsync(embed: await commandsService.Kick(user, reason, Context));
+        }
+
+        [Command("Ban"), RequireUserPermission(GuildPermission.KickMembers)]
+        public async Task Ban(IUser user, [Remainder] string reason = null)
+        {
+            await ReplyAsync(embed: await commandsService.Ban(user, reason, Context));
+        }
         #endregion
 
         #region Music Commands

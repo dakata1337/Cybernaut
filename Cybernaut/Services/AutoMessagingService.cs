@@ -40,16 +40,19 @@ namespace Cybernaut.Services
             var jObj = JsonConvert.DeserializeObject<JObject>(json);
             #endregion
 
+            if ((bool)jObj["GiveRoleOnJoin"] == false)
+                return Task.CompletedTask;
+
             //Get Auth Role
-            IRole role = user.Guild.GetRole((ulong)jObj["AuthRole"]);
+            IRole role = user.Guild.GetRole((ulong)jObj["RoleOnJoin"]);
 
             //Checks if an auth role is set
             if (role is null)
                 return Task.CompletedTask;
 
-            #region AuthEnabled Check
-            //If auth is disable give role straight away
-            if (jObj["AuthEnabled"].ToObject<bool>() == false)
+            #region RequireCAPTCHA Check
+            //If RequireCAPTCHA is false give role straight away
+            if (jObj["RequireCAPTCHA"].ToObject<bool>() == false)
             {
                 await user.AddRoleAsync(role);
                 return Task.CompletedTask;

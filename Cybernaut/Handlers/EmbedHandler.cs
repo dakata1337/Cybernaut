@@ -87,7 +87,7 @@ namespace Cybernaut.Handlers
             #endregion 
         }
 
-        public static async Task<Embed> CreateCustomEmbed(SocketGuild guild, Color color, List<EmbedFieldBuilder> fields, string embedTitle, bool showAppreciation)
+        public static async Task<Embed> CreateCustomEmbed(SocketGuild guild, Color color, List<EmbedFieldBuilder> fields, string embedTitle, bool showAppreciation = false)
         {
             #region Code
             var embed = await Task.Run(() => new EmbedBuilder

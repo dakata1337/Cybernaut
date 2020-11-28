@@ -51,9 +51,10 @@ NOTE: The first time you start the bot will create a config file which you need 
 * Resume - Resumes the music ```Usage: !resume ```
 * Lyrics - Gets the lyrics of the current song ```Usage: !lyrics ```
 * Auth:<br/>
--enable - Enables on join user authentication ```Usage: !auth enable ```<br/>
--disable - Disables on join user authentication ```Usage: !auth disable ```<br/>
--role - The role that is given when authenticated ```Usage: !auth role @role ```<br/>
+-enable - Enables on join user role ```Usage: !auth enable ```<br/>
+-disable - Disables on join user role ```Usage: !auth disable ```<br/>
+-role - The role that is given to the user ```Usage: !auth role @role ```<br/>
+-require - If disabled(by default) the bot will just give the role otherwise the user will get a message to confirm that he is not a bot ```Usage: !auth require ```<br/>
 * Whitelist:<br/>
 -add #ChannelName - Whitelists the specified channel<br/>
 -remove #ChannelName - Removes the specified channel from the whitelist<br/>

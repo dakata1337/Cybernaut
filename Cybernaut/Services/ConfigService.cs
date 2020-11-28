@@ -18,7 +18,17 @@ namespace Cybernaut.Services
 {
     public class ConfigService
     {
-        public List<ulong> whitelistedChannels { get; set; }
+        private static GuildConfig GenerateNewConfig(string prefix) => new GuildConfig
+        {
+            Prefix = prefix == null ? "!" : prefix,
+            whitelistedChannels = new List<ulong>(),
+            GiveRoleOnJoin = false,
+            RequireCAPTCHA = false,
+            RoleOnJoin = 0,
+            volume = 70,
+            islooping = false,
+            mutedUsers = null
+        };
 
         public async Task<Embed> ChangePrefix(SocketCommandContext context, string prefix)
         {
@@ -201,16 +211,6 @@ namespace Cybernaut.Services
             #endregion
         }
 
-        private static GuildConfig GenerateNewConfig(string prefix) => new GuildConfig
-        {
-            Prefix = prefix == null ? "!" : prefix,
-            whitelistedChannels = new List<ulong>(),
-            AuthRole = 0,
-            AuthEnabled = false,
-            volume = 70,
-            islooping = false
-        };
-
         public async Task<Embed> Authentication(string arg, IRole role, SocketCommandContext context)
         {
             #region Cases
@@ -222,6 +222,8 @@ namespace Cybernaut.Services
                     return await DisableAuthentication(context);
                 case "role":
                     return await ChangeAuthenticationRole(role, context);
+                case "require":
+                    return await RequireCAPTCHA(context);
                 case null:
                     return await AuthenticationStatus(context);
                 default:
@@ -238,10 +240,10 @@ namespace Cybernaut.Services
             #region Enable Authentication 
             var jObj = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(configFile));
 
-            if ((bool)jObj["AuthEnabled"] == true)
+            if ((bool)jObj["GiveRoleOnJoin"] == true)
                 return await EmbedHandler.CreateErrorEmbed("Configuration Error!", "Authentication is already enabled.");
 
-            jObj["AuthEnabled"] = true;
+            jObj["GiveRoleOnJoin"] = true;
 
             string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
             File.WriteAllText(configFile, output);
@@ -258,10 +260,10 @@ namespace Cybernaut.Services
             #region Disable Authentication
             var jObj = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(configFile));
 
-            if ((bool)jObj["AuthEnabled"] == false)
+            if ((bool)jObj["GiveRoleOnJoin"] == false)
                 return await EmbedHandler.CreateErrorEmbed("Configuration Error!", "Authentication is already disabled.");
 
-            jObj["AuthEnabled"] = false;
+            jObj["GiveRoleOnJoin"] = false;
 
             string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
             File.WriteAllText(configFile, output);
@@ -277,10 +279,10 @@ namespace Cybernaut.Services
             #region Changes the auth role
             var jObj = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(configFile));
 
-            if ((ulong)jObj["AuthRole"] == role.Id)
+            if ((ulong)jObj["RoleOnJoin"] == role.Id)
                 return await EmbedHandler.CreateErrorEmbed("Configuration Error!", $"\"{role.Name}\" is already the authentication role.");
 
-            jObj["AuthRole"] = role.Id;
+            jObj["RoleOnJoin"] = role.Id;
 
             string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
             File.WriteAllText(configFile, output);
@@ -295,9 +297,10 @@ namespace Cybernaut.Services
             dynamic json = GetService.GetJSONAsync(context.Guild);
             var jObj = JsonConvert.DeserializeObject(json);
 
-            bool isEnabled = jObj["AuthEnabled"];
-            ulong roleID = jObj["AuthRole"];
+            bool isEnabled = jObj["GiveRoleOnJoin"];
+            ulong roleID = jObj["RoleOnJoin"];
             string role = roleID == 0 ? "not set" : $"{context.Guild.GetRole(roleID).Name} (ID: {roleID})";
+            bool RequireCAPTCHA = jObj["RequireCAPTCHA"];
             #endregion
 
             #region Custom Embed
@@ -306,12 +309,38 @@ namespace Cybernaut.Services
             {
                 Name = "**Settings**",
                 Value = $"Enabled: {isEnabled}\n" +
-                $"Role: {role}",
+                $"Role: {role}\n" +
+                $"Require CAPTCHA: {RequireCAPTCHA}",
                 IsInline = false
             });
             #endregion
 
             return await EmbedHandler.CreateCustomEmbed(context.Guild, Color.Blue, fields, "Authentication Status", false);
+        }
+
+        private async Task<Embed> RequireCAPTCHA(SocketCommandContext context)
+        {
+            string configFile = GetService.GetConfigLocation(context.Guild);
+
+            #region Changes RequireCAPTCHA
+            var jObj = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(configFile));
+
+            if ((bool)jObj["RequireCAPTCHA"] == false)
+            {
+                jObj["RequireCAPTCHA"] = true;
+            }
+            else
+            {
+                jObj["RequireCAPTCHA"] = false;
+            }
+
+
+            string output = JsonConvert.SerializeObject(jObj, Formatting.Indented);
+            File.WriteAllText(configFile, output);
+            #endregion
+
+            string status = ((bool)jObj["RequireCAPTCHA"] == true ? "enabled" : "disabled");
+            return await EmbedHandler.CreateBasicEmbed("Authentication Configuration.", $"RequireCAPTCHA is now {status}.", Color.Blue);
         }
         #endregion
     }
