@@ -18,17 +18,6 @@ namespace Cybernaut.Services
 {
     public class ConfigService
     {
-        private static GuildConfig GenerateNewConfig(string prefix) => new GuildConfig
-        {
-            Prefix = prefix == null ? "!" : prefix,
-            whitelistedChannels = new List<ulong>(),
-            GiveRoleOnJoin = false,
-            RequireCAPTCHA = false,
-            RoleOnJoin = 0,
-            volume = 70,
-            islooping = false,
-            mutedUsers = null
-        };
 
         public async Task<Embed> ChangePrefix(SocketCommandContext context, string prefix)
         {
@@ -62,7 +51,7 @@ namespace Cybernaut.Services
             }
             else
             {
-                json = JsonConvert.SerializeObject(GenerateNewConfig(prefix), Formatting.Indented);
+                json = JsonConvert.SerializeObject(GuildData.GenerateNewConfig(prefix), Formatting.Indented);
                 var jObj = JsonConvert.DeserializeObject<JObject>(json);
 
                 if (jObj["whitelistedChannels"].Value<JArray>().Count == 0)

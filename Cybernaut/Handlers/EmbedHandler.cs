@@ -87,7 +87,7 @@ namespace Cybernaut.Handlers
             #endregion 
         }
 
-        public static async Task<Embed> CreateCustomEmbed(SocketGuild guild, Color color, List<EmbedFieldBuilder> fields, string embedTitle, bool showAppreciation = false)
+        public static async Task<Embed> CreateCustomEmbed(SocketGuild guild, Color color, List<EmbedFieldBuilder> fields, string embedTitle, bool showGuildIcon = false, string footer = null)
         {
             #region Code
             var embed = await Task.Run(() => new EmbedBuilder
@@ -98,11 +98,13 @@ namespace Cybernaut.Handlers
                 Fields = fields
             });
 
-            if (showAppreciation)
-            {
+
+            if (showGuildIcon)
                 embed.ThumbnailUrl = guild.IconUrl;
-                embed.Footer = new EmbedFooterBuilder { Text = $"Thank you for choosing {guild.CurrentUser.Username}", IconUrl = guild.CurrentUser.GetAvatarUrl() };
-            }
+
+            if (!(footer is null))
+                embed.Footer = new EmbedFooterBuilder { Text = $"{footer}", IconUrl = guild.CurrentUser.GetAvatarUrl() };
+
 
             embed.Color = color;
             return embed.Build();

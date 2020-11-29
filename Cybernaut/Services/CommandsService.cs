@@ -22,6 +22,7 @@ namespace Cybernaut.Services
         public ulong GuildId { get; set; }
         public DateTime ExpiresOn { get; set; }
     }
+
     public class CommandsService
     {
         public async Task<Embed> GetInvite(SocketCommandContext context)
@@ -205,7 +206,7 @@ namespace Cybernaut.Services
                 await user.SendMessageAsync(embed: 
                     await EmbedHandler.CreateCustomEmbed(context.Guild, Color.Red, fields, "Ouch... that hurts"));
             }
-            catch (Exception e) 
+            catch
             {
                 return await EmbedHandler.CreateBasicEmbed("Admin, Kick", $"**{user.Mention} has his/hers direct messages from server members disabled!**\n" +
                     $"{user.Username} was kicked from the guild.", Color.Blue);
@@ -253,7 +254,7 @@ namespace Cybernaut.Services
                 await user.SendMessageAsync(embed:
                     await EmbedHandler.CreateCustomEmbed(context.Guild, Color.Red, fields, "Ouch... that hurts"));
             }
-            catch (Exception e)
+            catch
             {
                 guildMsg.Append($"**{user.Mention} has his/hers direct messages from server members disabled!**\n");
             }

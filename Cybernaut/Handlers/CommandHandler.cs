@@ -51,18 +51,114 @@ namespace Cybernaut.Handlers
         {
             var argPos = 0;
 
+            #region Private Messages & CAPTCHA
+            if (socketMessage.Channel is IDMChannel dMChannel)
+            {
+                if (socketMessage.Author.IsBot)
+                    return Task.CompletedTask;
+
+                try
+                { 
+                    var guilds = socketMessage.Author.MutualGuilds.ToArray<SocketGuild>();
+
+                    ulong[] guildIDs = new ulong[guilds.Length];
+                    for (int i = 0; i < guilds.Length; i++)
+                    {
+                        guildIDs[i] = guilds[i].Id;
+                    }
+
+                    bool continueCheck = false;
+                    foreach (var guildID in guildIDs)
+                    {
+                        SocketGuild guild = _client.GetGuild(guildID);
+                        string configLocation = GetService.GetConfigLocation(guild);
+
+                        if (continueCheck == false)
+                        {
+                            var user = await dMChannel.GetUserAsync(socketMessage.Author.Id);
+                            dynamic jObj = JsonConvert.DeserializeObject(File.ReadAllText(configLocation));
+
+                            JObject[] ogArray = jObj["usersCAPTCHA"].ToObject<JObject[]>();
+                            List<JObject> newList = new List<JObject>();
+
+                            #region CPATCHA Checks
+                            //Checks if the captcha is for the right user & if the captcha is correct
+                            if (!(ogArray is null))
+                            {
+                                newList = new List<JObject>(ogArray);
+                                foreach (JObject item in ogArray)
+                                {
+                                    if (!(item is null))
+                                    {
+                                        var userCAPTCHA = item.ToObject<CAPTCHAs>();
+                                        if (userCAPTCHA.userID != user.Id)
+                                            continue;
+
+                                        #region CPATCHA Answer Check
+                                        if (userCAPTCHA.captchaAnswer == socketMessage.Content)
+                                        {
+                                            IRole role = guild.GetRole((ulong)jObj["RoleOnJoin"]);
+
+                                            if (role is null)
+                                            {
+                                                continueCheck = true;
+                                                break;
+                                            }
+
+                                            newList.Remove(item);
+                                            jObj["usersCAPTCHA"] = JToken.FromObject(newList.ToArray());
+
+                                            var guildUser = guild.GetUser(user.Id);
+                                            await guildUser.AddRoleAsync(role);
+                                            
+                                            File.WriteAllText(configLocation,
+                                                JsonConvert.SerializeObject(jObj, Formatting.Indented));
+                                            await user.SendMessageAsync(embed:
+                                                await EmbedHandler.CreateBasicEmbed("I am glad you came!",
+                                                $"You entered the correct CAPTCHA.\n" +
+                                                $"**Welcome to {guild.Name}.**",
+                                                Color.Blue));
+                                            File.Delete(@$"captchas/{guild.Id}-{userCAPTCHA.userID}.png");
+
+                                            continueCheck = true;
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            await user.SendMessageAsync(embed:
+                                                await EmbedHandler.CreateBasicEmbed("Oh.. sorry.", "You didn't solve the captcha correctly.\nI hope I see you again.", Discord.Color.Red));
+                                            var guildUser = guild.GetUser(user.Id);
+                                            await guildUser.KickAsync();
+                                        }
+                                        #endregion
+                                    }
+                                }
+                            }
+                            #endregion
+                        }
+                        else //IF the captcha for the user is found
+                        {
+                            break;
+                        }
+                    }
+
+                    return Task.CompletedTask;
+                }
+                catch
+                {
+                    return Task.CompletedTask;
+                }
+            }
+            #endregion
+
             #region Checks message origins
             if (!(socketMessage is SocketUserMessage message) || message.Author.IsBot || message.Author.IsWebhook || message.Channel is IPrivateChannel)
                 return Task.CompletedTask;
             #endregion
 
             var context = new SocketCommandContext(_client, socketMessage as SocketUserMessage);
-
-            string serverPrefix = string.Empty;
-
-
             string configFile = GetService.GetConfigLocation(context.Guild);
-
+            string serverPrefix = string.Empty;
 
             #region Prefix Checks
             bool configExists = false;

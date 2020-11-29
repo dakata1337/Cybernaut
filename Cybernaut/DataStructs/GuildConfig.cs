@@ -13,6 +13,7 @@ namespace Cybernaut.DataStructs
         public bool GiveRoleOnJoin { get; set; }
         public ulong RoleOnJoin { get; set; }
         public bool RequireCAPTCHA { get; set; }
+        public JObject[] usersCAPTCHA { get; set; }
         public int volume { get; set; }
         public bool islooping { get; set; }
         public JObject[] mutedUsers { get; set; }

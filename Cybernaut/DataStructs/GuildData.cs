@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -24,5 +25,18 @@ namespace Cybernaut.DataStructs
             }
             return Task.CompletedTask;
         }
+
+        public static GuildConfig GenerateNewConfig(string prefix) => new GuildConfig
+        {
+            Prefix = prefix == null ? "!" : prefix,
+            whitelistedChannels = new List<ulong>(),
+            GiveRoleOnJoin = false,            
+            RoleOnJoin = 0,
+            RequireCAPTCHA = false,
+            usersCAPTCHA = null,
+            volume = 70,
+            islooping = false,
+            mutedUsers = null
+        };
     }
 }

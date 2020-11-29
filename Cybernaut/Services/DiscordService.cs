@@ -51,6 +51,7 @@ namespace Cybernaut.Services
             _client.JoinedGuild += _autoMessagingService.OnGuildJoin;
             _client.LeftGuild += DeleteConfig;
             _client.UserJoined += _autoMessagingService.OnUserJoin;
+            _client.UserLeft += _autoMessagingService.OnUserLeft;
             _client.GuildAvailable += GuildAvailable;
         }
 
