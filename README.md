@@ -59,7 +59,15 @@ NOTE: The first time you start the bot will create a config file which you need 
 -add #ChannelName - Whitelists the specified channel<br/>
 -remove #ChannelName - Removes the specified channel from the whitelist<br/>
 -list - Shows all whitelisted channels<br/>
-
+* Shuffle - Shuffles the queue ```Usage: !queue```
+* Playlist:<br/>
+-create - Creates new playlist ```Usage: !playlist create PlaylistNameHere```
+-remove - Removes selected playlist ```Usage: !playlist remove PlaylistNameHere```
+-modify - Modifies the playlist:
+   +add - Adds selected song to the specified playlist ```Usage: !playlist modify PlaylistNameHere add SongUrl\Name```
+   +remove - Removes selected song from the specified playlist ```Usage: !playlist modify PlaylistNameHere remove SongUrl\Name```
+-load - Plays the selected playlist ```Usage: !playlist load PlaylistNameHere
+-show - Shows the selected playlist (If playlist not specified - shows all playlists) ```Usage: !playlist show PlaylistNameHere```
 
 
 ## Support
