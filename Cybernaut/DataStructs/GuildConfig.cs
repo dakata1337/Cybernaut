@@ -16,6 +16,7 @@ namespace Cybernaut.DataStructs
         public JObject[] usersCAPTCHA { get; set; }
         public int volume { get; set; }
         public bool islooping { get; set; }
+        public JObject[] playlists { get; set; }
         public JObject[] mutedUsers { get; set; }
     }
 }

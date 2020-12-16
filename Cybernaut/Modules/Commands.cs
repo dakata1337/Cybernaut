@@ -12,9 +12,6 @@ namespace Cybernaut.Modules
     public class Commands : ModuleBase<SocketCommandContext>
     {
         public LavaLinkService AudioService { get; set; }
-        ConfigService configService = new ConfigService();
-        AutoMessagingService autoMessagingService = new AutoMessagingService();
-        CommandsService commandsService = new CommandsService();
 
         #region Testing Commands
         /* Used for testing purposes */
@@ -35,7 +32,7 @@ namespace Cybernaut.Modules
         [Command("invite")]
         public async Task GetInvite()
         {
-            await ReplyAsync(embed: await commandsService.GetInvite(Context));
+            await ReplyAsync(embed: await CommandsService.GetInvite(Context));
         }
         #endregion
 
@@ -43,43 +40,43 @@ namespace Cybernaut.Modules
         [Command("prefix"), RequireUserPermission(GuildPermission.Administrator)]
         public async Task ChangePrefix(string prefix)
         {
-            await ReplyAsync(embed: await configService.ChangePrefix(Context, prefix));
+            await ReplyAsync(embed: await ConfigService.ChangePrefix(Context, prefix));
         }
 
         [Command("whitelist"), RequireUserPermission(GuildPermission.ManageChannels)]
         public async Task Whitelist(string arg, IChannel channel = null)
         {
-            await ReplyAsync(embed: await configService.WhiteList(Context, channel, arg));
+            await ReplyAsync(embed: await ConfigService.WhiteList(Context, channel, arg));
         }
 
         [Command("auth"), RequireUserPermission(GuildPermission.Administrator)]
         public async Task Authentication(string arg = null, IRole role = null)
         {
-            await ReplyAsync(embed: await configService.Authentication(arg, role, Context));
+            await ReplyAsync(embed: await ConfigService.Authentication(arg, role, Context));
         }
 
         [Command("mute"), RequireUserPermission(GuildPermission.MuteMembers)]
         public async Task Mute(IUser user, string time)
         {
-            await ReplyAsync(embed: await commandsService.Mute(user, time, Context));
+            await ReplyAsync(embed: await CommandsService.Mute(user, time, Context));
         }
 
         [Command("unmute"), RequireUserPermission(GuildPermission.MuteMembers)]
         public async Task Mute(IUser user)
         {
-            await ReplyAsync(embed: await commandsService.Unmute(user, Context));
+            await ReplyAsync(embed: await CommandsService.Unmute(user, Context));
         }
 
         [Command("kick"), RequireUserPermission(GuildPermission.KickMembers)]
         public async Task Kick(IUser user, [Remainder]string reason = null)
         {
-            await ReplyAsync(embed: await commandsService.Kick(user, reason, Context));
+            await ReplyAsync(embed: await CommandsService.Kick(user, reason, Context));
         }
 
         [Command("Ban"), RequireUserPermission(GuildPermission.KickMembers)]
         public async Task Ban(IUser user, [Remainder] string reason = null)
         {
-            await ReplyAsync(embed: await commandsService.Ban(user, reason, Context));
+            await ReplyAsync(embed: await CommandsService.Ban(user, reason, Context));
         }
         #endregion
 
@@ -93,7 +90,7 @@ namespace Cybernaut.Modules
         [Command("Leave")]
         public async Task Leave()
         {
-            await ReplyAsync(embed: await AudioService.LeaveAsync(Context.Guild, Context.User as SocketGuildUser));
+            await ReplyAsync(embed: await AudioService.LeaveAsync(Context, Context.User as SocketGuildUser));
         }
 
         [Command("Play")]
@@ -105,49 +102,61 @@ namespace Cybernaut.Modules
         [Command("Stop")]
         public async Task Stop()
         {
-            await ReplyAsync(embed: await AudioService.StopAsync(Context.Guild, Context.User as SocketGuildUser));
+            await ReplyAsync(embed: await AudioService.StopAsync(Context, Context.User as SocketGuildUser));
         }
 
         [Command("List")]
         public async Task List()
         {
-            await ReplyAsync(embed: await AudioService.ListAsync(Context.Guild, Context.User as SocketGuildUser));
+            await ReplyAsync(embed: await AudioService.ListAsync(Context, Context.User as SocketGuildUser));
         }
 
         [Command("Skip")]
         public async Task Skip()
         {
-            await ReplyAsync(embed: await AudioService.SkipTrackAsync(Context.Guild, Context.User as SocketGuildUser));
+            await ReplyAsync(embed: await AudioService.SkipTrackAsync(Context, Context.User as SocketGuildUser));
         }
 
         [Command("Volume")]
         public async Task Volume(int? volume = null)
         {
-            await ReplyAsync(embed: await AudioService.SetVolumeAsync(Context.Guild, volume, Context.User as SocketGuildUser, Context.Channel as ITextChannel));
+            await ReplyAsync(embed: await AudioService.SetVolumeAsync(Context, volume, Context.User as SocketGuildUser, Context.Channel as ITextChannel));
         }
 
         [Command("Pause")]
         public async Task Pause()
         {
-            await ReplyAsync(embed: await AudioService.PauseAsync(Context.Guild, Context.User as SocketGuildUser));
+            await ReplyAsync(embed: await AudioService.PauseAsync(Context, Context.User as SocketGuildUser));
         }
 
         [Command("Resume")]
         public async Task Resume()
         {
-            await ReplyAsync(embed: await AudioService.ResumeAsync(Context.Guild, Context.User as SocketGuildUser));
+            await ReplyAsync(embed: await AudioService.ResumeAsync(Context, Context.User as SocketGuildUser));
         }
 
         [Command("Loop")]
         public async Task Loop(string argument = null)
         {
-            await ReplyAsync(embed: await AudioService.LoopAsync(Context.Guild, Context.Channel as ITextChannel, Context.User as SocketGuildUser, argument));
+            await ReplyAsync(embed: await AudioService.LoopAsync(Context, Context.Channel as ITextChannel, Context.User as SocketGuildUser, argument));
         }
 
         [Command("Lyrics")]
         public async Task Lyrics()
         {
             await ReplyAsync(embed: await AudioService.GetLyricsAsync(Context));
+        }
+
+        [Command("Playlist")]
+        public async Task Playlist(string arg1, string arg2 = null, string arg3 = null, [Remainder] string arg4 = null)
+        {
+            await ReplyAsync(embed: await AudioService.Playlist(Context, arg1, arg2, arg3, arg4));
+        }
+
+        [Command("Shuffle")]
+        public async Task Shuffle()
+        {
+            await ReplyAsync(embed: await AudioService.ShuffleAsync(Context));
         }
         #endregion
     }

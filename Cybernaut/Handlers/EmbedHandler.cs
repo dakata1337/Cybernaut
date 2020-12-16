@@ -110,14 +110,5 @@ namespace Cybernaut.Handlers
             return embed.Build();
             #endregion
         }
-
-        private static string GetPrefix(ICommandContext context, string configFile)
-        {
-            #region Code
-            var json = File.ReadAllText(configFile);
-            dynamic stuff = JsonConvert.DeserializeObject(json);
-            return stuff.Prefix;
-            #endregion
-        }
     }
 }

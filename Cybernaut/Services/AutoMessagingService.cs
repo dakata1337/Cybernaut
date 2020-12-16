@@ -14,15 +14,10 @@ using Newtonsoft.Json.Linq;
 using System.Threading;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Text;
 
 namespace Cybernaut.Services
 {
-    class CAPTCHAs
-    {
-        public string captchaAnswer { get; set; }
-        public ulong userID { get; set; }
-    }
-
     public class AutoMessagingService
     {
         public Task OnUserJoin(SocketGuildUser user)
@@ -44,7 +39,7 @@ namespace Cybernaut.Services
             SocketGuild guild = user.Guild;
             string configLocation = GetService.GetConfigLocation(guild);
 
-            dynamic jObj = JsonConvert.DeserializeObject(File.ReadAllText(configLocation));
+            var jObj = GetService.GetJObject(guild);
 
             JObject[] ogArray = jObj["usersCAPTCHA"].ToObject<JObject[]>();
             List<JObject> newList = new List<JObject>();
@@ -83,7 +78,7 @@ namespace Cybernaut.Services
             string configFile = GetService.GetConfigLocation(user.Guild);
 
             var json = File.ReadAllText(configFile);
-            var jObj = JsonConvert.DeserializeObject<JObject>(json);
+            var jObj = GetService.GetJObject(user.Guild);
             #endregion
 
             if ((bool)jObj["GiveRoleOnJoin"] == false)
@@ -181,20 +176,27 @@ namespace Cybernaut.Services
         public async Task OnGuildJoin(SocketGuild guild)
         {
             #region Code
+            string configLocation = GetService.GetConfigLocation(guild);
+            if (!File.Exists(configLocation))
+            {
+                string json = JsonConvert.SerializeObject(GuildData.GenerateNewConfig(GlobalData.Config.DefaultPrefix), Formatting.Indented);
+                var jObj = JsonConvert.DeserializeObject<JObject>(json);
+
+                if (jObj["whitelistedChannels"].Value<JArray>().Count == 0)
+                {
+                    ulong[] ts = { guild.DefaultChannel.Id };
+                    jObj["whitelistedChannels"] = JToken.FromObject(ts);
+                }
+                File.WriteAllText(configLocation, JsonConvert.SerializeObject(jObj, Formatting.Indented), new UTF8Encoding(false));
+            }
+
             #region Custom Embed 
             var fields = new List<EmbedFieldBuilder>();
             fields.Add(new EmbedFieldBuilder
             {
-                Name = $"Setup time!",
-                Value = $"We have some setup to do! " +
-                $"Type `{GlobalData.Config.DefaultPrefix}prefix YourPrefixHere`.",
-                IsInline = false
-            });
-            fields.Add(new EmbedFieldBuilder
-            {
                 Name = "**NOTE**",
-                Value = "By default, the channel in which you will type the prefix command, will be whitelisted. " +
-                "If you want to whitelist another channel type `!whitelist add #your-channel` (Must be tagged).",
+                Value = $"By default, {guild.DefaultChannel.Mention} is the default bot channel.\n" +
+                $"If you want to change it go to the channel and type {GlobalData.Config.DefaultPrefix}prefix YourPrefixHere",
                 IsInline = false
             });
 
@@ -250,11 +252,8 @@ namespace Cybernaut.Services
                 int y0 = rnd.Next(0, image.Height);
                 int x1 = rnd.Next(0, image.Width);
                 int y1 = rnd.Next(0, image.Height);
-
-
                 graphics.DrawLine(pen, x0, y0, x1, x1);
             }
-            
 
             return image;
         }

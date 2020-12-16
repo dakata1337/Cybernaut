@@ -36,6 +36,7 @@ namespace Cybernaut.DataStructs
             usersCAPTCHA = null,
             volume = 70,
             islooping = false,
+            playlists = null,
             mutedUsers = null
         };
     }

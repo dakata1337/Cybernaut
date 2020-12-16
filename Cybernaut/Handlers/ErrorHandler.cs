@@ -44,7 +44,6 @@ namespace Cybernaut.Handlers
             if (msg != null)
             {
                 await context.Channel.SendMessageAsync(embed: await EmbedHandler.CreateErrorEmbed(title, msg));
-                await LoggingService.LogCriticalAsync("ErrorHandler", $"Error: {result.Error }\nError reason: {result.ErrorReason}");
             }
             #endregion
         }

@@ -9,7 +9,9 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net.WebSockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -28,8 +30,10 @@ namespace Cybernaut.Services
         private static BlockingCollection<Exception> exceptionQueue = new BlockingCollection<Exception>();
         private static BlockingCollection<ConsoleColor> colorQueue = new BlockingCollection<ConsoleColor>();
 
-        public static Task InitializeAsync()
+        public static async Task<Task> InitializeAsync()
         {
+            await ArchiveOldLog();
+
             string latestLog = "logs/latest.log";
             var loggingThread = new Thread(async () =>
             {
@@ -71,6 +75,7 @@ namespace Cybernaut.Services
 
             var exceptionThread = new Thread(async () =>
             {
+                #region Code
                 while (true)
                 {
                     Exception exception = exceptionQueue.Take();
@@ -95,6 +100,7 @@ namespace Cybernaut.Services
                             break;
                     }
                 }
+                #endregion
             });
 
             #region Start Threads
@@ -107,6 +113,35 @@ namespace Cybernaut.Services
             return Task.CompletedTask;
         }
 
+        #region Archive logs
+        private static async Task<Task> ArchiveOldLog()
+        {
+            FileInfo latest = new FileInfo(@"logs/latest.log");
+            if (!latest.Exists)
+                return Task.CompletedTask;
+
+            var zipName = $@"logs/{latest.CreationTime.ToString("dd_MM_yyyy-H_mm_ss")}.zip";
+
+            using (ZipArchive zip = ZipFile.Open(zipName, ZipArchiveMode.Create))
+                zip.CreateEntryFromFile(@"logs/latest.log", "latest.log");
+
+            File.Delete(@"logs/latest.log");
+            Thread.Sleep(100);
+            File.Create(@"logs/latest.log").Dispose();
+            File.SetCreationTimeUtc(@"logs/latest.log", DateTime.UtcNow);
+            return Task.CompletedTask;
+        }
+        
+        private static Random random = new Random();
+        public static string RandomString(int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+        #endregion
+
+        #region Log
         public static async Task Log(string src, LogSeverity severity, string message, Exception exception = null)
         {
             //If there is an exception give it to the exception handler
@@ -137,7 +172,9 @@ namespace Cybernaut.Services
                     await AddToQueue(src, message, GetSeverityColor(severity));
             #endif
         }
+        #endregion
 
+        #region Queue
         private static async Task AddToQueue(string src, string msg, ConsoleColor color)
         {
             sourceQueue.Add(src); //Adds the source to the queue
@@ -145,14 +182,29 @@ namespace Cybernaut.Services
             colorQueue.Add(color); //Adds the color to the queue
             await Task.CompletedTask;
         }
+        #endregion
 
+        #region Log to file
         private static async Task LogToFile(string message, string logFileLocation)
         {
-            using (StreamWriter writer = File.AppendText(logFileLocation))
-                writer.Write(message);
+            while (true)
+            {
+                try
+                {
+                    if (!File.Exists(logFileLocation))
+                        await File.Create(logFileLocation).DisposeAsync();
 
+                    using (StreamWriter sw = File.AppendText(logFileLocation))
+                    {
+                        sw.Write(message);
+                    }
+                    break;
+                }
+                catch (Exception e) { continue; }
+            }
             await Task.CompletedTask;
         }
+        #endregion
 
         private static ConsoleColor GetSeverityColor(LogSeverity severity = new LogSeverity())
         {

@@ -16,10 +16,10 @@ using Victoria;
 
 namespace Cybernaut.Services
 {
-    public class ConfigService
+    public static class ConfigService
     {
 
-        public async Task<Embed> ChangePrefix(SocketCommandContext context, string prefix)
+        public static async Task<Embed> ChangePrefix(SocketCommandContext context, string prefix)
         {
             #region Checks
 
@@ -37,47 +37,26 @@ namespace Cybernaut.Services
             string configFile = GetService.GetConfigLocation(context.Guild);
             bool autoWhitelist = false;
 
-            if (File.Exists(configFile))
-            {
-                json = File.ReadAllText(configFile);
-                dynamic jObj = JsonConvert.DeserializeObject(json);
+            var jObj = GetService.GetJObject(context.Guild);
 
-                if(jObj["Prefix"] == prefix)
-                    return await EmbedHandler.CreateBasicEmbed("Configuration Error.", '\u0022' + prefix + '\u0022' + " is already the prefix.", Color.Orange);
+            if ((string)jObj["Prefix"] == prefix)
+                return await EmbedHandler.CreateBasicEmbed("Configuration Error.", '\u0022' + prefix + '\u0022' + " is already the prefix.", Color.Orange);
 
-                jObj["Prefix"] = prefix;
+            jObj["Prefix"] = prefix;
 
-                File.WriteAllText(configFile, JsonConvert.SerializeObject(jObj, Formatting.Indented));
-            }
-            else
-            {
-                json = JsonConvert.SerializeObject(GuildData.GenerateNewConfig(prefix), Formatting.Indented);
-                var jObj = JsonConvert.DeserializeObject<JObject>(json);
+            File.WriteAllText(configFile, JsonConvert.SerializeObject(jObj, Formatting.Indented));
 
-                if (jObj["whitelistedChannels"].Value<JArray>().Count == 0)
-                {
-                    ulong[] ts = { context.Channel.Id };
-                    jObj["whitelistedChannels"] = JToken.FromObject(ts);
-                    autoWhitelist = true;
-                }
-                File.WriteAllText(configFile, JsonConvert.SerializeObject(jObj, Formatting.Indented), new UTF8Encoding(false));
-            }
             return await EmbedHandler.CreateBasicEmbed("Configuration Changed.",  autoWhitelist == true ? 
                 $"The prefix was successfully changed to \"{prefix}\".\nAdded **{context.Channel.Name}** to the channel whitelist." : 
                 $"The prefix was successfully changed to \"{prefix}\".", Color.Blue);
             #endregion
         }
 
-        public async Task<Embed> WhiteList(SocketCommandContext context, IChannel channel, string arg)
+        public static async Task<Embed> WhiteList(SocketCommandContext context, IChannel channel, string arg)
         {
             string configFile = GetService.GetConfigLocation(context.Guild);
 
             #region Checks
-
-            #region Config Check
-            if (!File.Exists(configFile))
-                return await EmbedHandler.CreateBasicEmbed("Configuration Needed!", $"Please type `{GlobalData.Config.DefaultPrefix}prefix YourPrefixHere` to configure the bot.", Color.Orange);
-            #endregion
 
             #region Text Channel Check
             if (channel != null)
@@ -90,10 +69,10 @@ namespace Cybernaut.Services
             #endregion
 
             #region Code
-            dynamic jsonObj = JsonConvert.DeserializeObject(File.ReadAllText(configFile));
+            var jObj = GetService.GetJObject(context.Guild);
 
-            ulong[] ogArray = jsonObj.whitelistedChannels.ToObject<ulong[]>();
-            List<ulong> newList = new List<ulong>(ogArray);
+            ulong[] whitelistedChannels = jObj["whitelistedChannels"].ToObject<ulong[]>();
+            List<ulong> newList = new List<ulong>(whitelistedChannels);
 
             switch (arg)
             {
@@ -111,14 +90,14 @@ namespace Cybernaut.Services
                     #endregion
 
                     #region Whitelist Limit Check
-                    if (ogArray.Length > 100) //Limits the whitelisted channels to avoid massive file sizes
+                    if (whitelistedChannels.Length > 100) //Limits the whitelisted channels to avoid massive file sizes
                     {
                         return await EmbedHandler.CreateBasicEmbed("Configuration Error.", $"You have reached the maximum of 100 whitelisted channels.", Color.Orange);
                     }
                     #endregion
 
                     #region Check if whitelisted
-                    foreach (ulong item in ogArray) 
+                    foreach (ulong item in whitelistedChannels) 
                     {
                         if (item == channel.Id)
                             return await EmbedHandler.CreateBasicEmbed("Configuration Error.", $"{context.Guild.GetChannel(item)} is already whitelisted!", Color.Orange);
@@ -132,11 +111,11 @@ namespace Cybernaut.Services
                     newList.Add(channel.Id);
 
                     //Overwrite the jsonObj file with the updated array
-                    jsonObj["whitelistedChannels"] = JToken.FromObject(newList.ToArray());
+                    jObj["whitelistedChannels"] = JToken.FromObject(newList.ToArray());
 
                     //Saving to file
                     File.WriteAllText(configFile,
-                        JsonConvert.SerializeObject(jsonObj, Formatting.Indented));
+                        JsonConvert.SerializeObject(jObj, Formatting.Indented));
                     #endregion
                     return await EmbedHandler.CreateBasicEmbed("Configuration Changed.", $"{context.Guild.GetChannel(channel.Id)} was whitelisted.", Color.Blue);
 
@@ -160,7 +139,7 @@ namespace Cybernaut.Services
 
                     #region In List Check
                     bool found = false;
-                    foreach (ulong item in ogArray)
+                    foreach (ulong item in whitelistedChannels)
                     {
                         if (item == channel.Id)
                         {
@@ -177,30 +156,30 @@ namespace Cybernaut.Services
                     #region Remove Code
                     newList.Remove(channel.Id);
 
-                    jsonObj["whitelistedChannels"] = JToken.FromObject(newList.ToArray());
+                    jObj["whitelistedChannels"] = JToken.FromObject(newList.ToArray());
 
                     File.WriteAllText(configFile,
-                        JsonConvert.SerializeObject(jsonObj, Formatting.Indented));
+                        JsonConvert.SerializeObject(jObj, Formatting.Indented));
                     #endregion
                     return await EmbedHandler.CreateBasicEmbed("Configuration Changed.", $"{context.Guild.GetChannel(channel.Id)} was removed from the whitelist.", Color.Blue);
                 case "list":
                     #region Read Whitelisted Channels
                     StringBuilder builder = new StringBuilder();
                     builder.Append("Whitelisted channels:\n");
-                    for (int i = 0; i < ogArray.Length; i++)
+                    for (int i = 0; i < whitelistedChannels.Length; i++)
                     {
-                        var whitelistedChannel = context.Guild.GetChannel(ogArray[i]);
+                        var whitelistedChannel = context.Guild.GetChannel(whitelistedChannels[i]);
                         builder.Append($"{i + 1}. {whitelistedChannel.Name} (ID: {whitelistedChannel.Id})\n");
                     }
                     #endregion
                     return await EmbedHandler.CreateBasicEmbed("Whitelist, List", $"{builder}", Color.Blue);
                 default:
-                    return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"{arg} is not a valid argument. Please type {jsonObj["Prefix"]}commands for help.");
+                    return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"{arg} is not a valid argument. Please type {jObj["Prefix"]}commands for help.");
             }
             #endregion
         }
 
-        public async Task<Embed> Authentication(string arg, IRole role, SocketCommandContext context)
+        public static async Task<Embed> Authentication(string arg, IRole role, SocketCommandContext context)
         {
             #region Cases
             switch (arg)
@@ -222,12 +201,12 @@ namespace Cybernaut.Services
         }
 
         #region Auth Functions
-        private async Task<Embed> EnableAuthentication(SocketCommandContext context)
+        private static async Task<Embed> EnableAuthentication(SocketCommandContext context)
         {
             string configFile = GetService.GetConfigLocation(context.Guild);
 
             #region Enable Authentication 
-            var jObj = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(configFile));
+            var jObj = GetService.GetJObject(context.Guild);
 
             if ((bool)jObj["GiveRoleOnJoin"] == true)
                 return await EmbedHandler.CreateErrorEmbed("Configuration Error!", "Authentication is already enabled.");
@@ -242,12 +221,12 @@ namespace Cybernaut.Services
         }
 
 
-        private async Task<Embed> DisableAuthentication(SocketCommandContext context)
+        private static async Task<Embed> DisableAuthentication(SocketCommandContext context)
         {
             string configFile = GetService.GetConfigLocation(context.Guild);
 
             #region Disable Authentication
-            var jObj = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(configFile));
+            var jObj = GetService.GetJObject(context.Guild);
 
             if ((bool)jObj["GiveRoleOnJoin"] == false)
                 return await EmbedHandler.CreateErrorEmbed("Configuration Error!", "Authentication is already disabled.");
@@ -261,12 +240,12 @@ namespace Cybernaut.Services
             return await EmbedHandler.CreateBasicEmbed("Authentication Disabled.", $"Authentication is now disabled!", Color.Blue);
         }
 
-        private async Task<Embed> ChangeAuthenticationRole(IRole role, SocketCommandContext context)
+        private static async Task<Embed> ChangeAuthenticationRole(IRole role, SocketCommandContext context)
         {
             string configFile = GetService.GetConfigLocation(context.Guild);
 
             #region Changes the auth role
-            var jObj = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(configFile));
+            var jObj = GetService.GetJObject(context.Guild);
 
             if ((ulong)jObj["RoleOnJoin"] == role.Id)
                 return await EmbedHandler.CreateErrorEmbed("Configuration Error!", $"\"{role.Name}\" is already the authentication role.");
@@ -280,16 +259,15 @@ namespace Cybernaut.Services
             return await EmbedHandler.CreateBasicEmbed("Authentication Configuration.", $"\"{role.Name}\" is now the authentication role.", Color.Blue);
         }
 
-        private async Task<Embed> AuthenticationStatus(SocketCommandContext context)
+        private static async Task<Embed> AuthenticationStatus(SocketCommandContext context)
         {
             #region JSON
-            dynamic json = GetService.GetJSONAsync(context.Guild);
-            var jObj = JsonConvert.DeserializeObject(json);
+            var jObj = GetService.GetJObject(context.Guild);
 
-            bool isEnabled = jObj["GiveRoleOnJoin"];
-            ulong roleID = jObj["RoleOnJoin"];
+            bool isEnabled = (bool)jObj["GiveRoleOnJoin"];
+            ulong roleID = (ulong)jObj["RoleOnJoin"];
             string role = roleID == 0 ? "not set" : $"{context.Guild.GetRole(roleID).Name} (ID: {roleID})";
-            bool RequireCAPTCHA = jObj["RequireCAPTCHA"];
+            bool RequireCAPTCHA = (bool)jObj["RequireCAPTCHA"];
             #endregion
 
             #region Custom Embed
@@ -307,12 +285,12 @@ namespace Cybernaut.Services
             return await EmbedHandler.CreateCustomEmbed(context.Guild, Color.Blue, fields, "Authentication Status", false);
         }
 
-        private async Task<Embed> RequireCAPTCHA(SocketCommandContext context)
+        private static async Task<Embed> RequireCAPTCHA(SocketCommandContext context)
         {
             string configFile = GetService.GetConfigLocation(context.Guild);
 
             #region Changes RequireCAPTCHA
-            var jObj = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(configFile));
+            var jObj = GetService.GetJObject(context.Guild);
 
             if ((bool)jObj["RequireCAPTCHA"] == false)
             {

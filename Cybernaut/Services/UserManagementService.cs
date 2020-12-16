@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -28,8 +29,15 @@ namespace Cybernaut.Services
             await LoggingService.Log("UMS", Discord.LogSeverity.Info, "Loading UMS");
             var userManagementService = new Thread(async () =>
             {
+                #region Muted users check
+                #if DEBUG
+                Stopwatch stopwatch = new Stopwatch();
+                #endif
                 while (true)
                 {
+                    #if DEBUG
+                    stopwatch.Restart();
+                    #endif
                     string[] configs = System.IO.Directory.GetFiles(GlobalData.Config.ConfigLocation, "*.json");
                     for (int i = 0; i < configs.Length; i++)
                     {
@@ -44,6 +52,7 @@ namespace Cybernaut.Services
                          * being read the program will explode.
                          * *Edit* Should be ok like this... i think.
                          */
+
                         string json = string.Empty;
                         try
                         {
@@ -58,8 +67,8 @@ namespace Cybernaut.Services
                             continue;
                         }
 
-                        dynamic jsonObj = JsonConvert.DeserializeObject(json);
-                        JObject[] ogArray = jsonObj.mutedUsers.ToObject<JObject[]>();
+                        var jObj = (JObject)JsonConvert.DeserializeObject(json);
+                        JObject[] mutedUsers = jObj["mutedUsers"].ToObject<JObject[]>();
                         List<JObject> newList = new List<JObject>();
 
                         /* 
@@ -69,49 +78,57 @@ namespace Cybernaut.Services
                          */
 
                         //Checks if the user is muted already
-                        if (!(ogArray is null))
+                        if (!(mutedUsers is null))
                         {
-                            newList = new List<JObject>(ogArray);
+                            newList = new List<JObject>(mutedUsers);
                             int count = 0;
-                            foreach (JObject item in ogArray)
+                            foreach (JObject mutedUser in mutedUsers)
                             {
-                                if (!(item is null))
+                                if (!(mutedUser is null))
                                 {
-                                    var userInfo = item.ToObject<UserInfo>();
+                                    var userInfo = mutedUser.ToObject<UserInfo>();
                                     var timeSpan = userInfo.ExpiresOn.Subtract(DateTime.Now);
                                     if (timeSpan.CompareTo(TimeSpan.Zero) < 0)
                                     {
                                         newList.RemoveAt(count);
-                                        jsonObj["mutedUsers"] = JToken.FromObject(newList.ToArray());
+                                        jObj["mutedUsers"] = JToken.FromObject(newList.ToArray());
 
                                         var user = _client.GetUser(userInfo.Id);
+                                        var guild = _client.GetGuild(userInfo.GuildId);
                                         await user.GetOrCreateDMChannelAsync();
 
                                         try
                                         {
-                                            await user.SendMessageAsync($"Your mute in {_client.GetGuild(userInfo.GuildId).Name} has just ended.");
+                                            await user.SendMessageAsync($"Your mute in {guild.Name} has just ended.");
                                         }
                                         catch (HttpException)
                                         {
-                                            await LoggingService.LogInformationAsync("Guild", $"{_client.GetUser(userInfo.Id).Username}'s mute ended but he doesn't allow direct msgs.");
+                                            await LoggingService.LogInformationAsync("Guild", $"{user.Username}'s mute ended but he doesn't allow direct msgs.");
                                             //Saving to file
                                             File.WriteAllText(configFile,
-                                                JsonConvert.SerializeObject(jsonObj, Formatting.Indented));
+                                                JsonConvert.SerializeObject(jObj, Formatting.Indented));
                                             continue;
                                         }
 
-                                        await LoggingService.LogInformationAsync("Guild", $"{_client.GetUser(userInfo.Id).Username}'s mute ended.");
+                                        await LoggingService.LogInformationAsync("Guild", $"{user.Username}'s mute ended.");
                                         //Saving to file
                                         File.WriteAllText(configFile,
-                                            JsonConvert.SerializeObject(jsonObj, Formatting.Indented));
+                                            JsonConvert.SerializeObject(jObj, Formatting.Indented));
                                     }
                                 }
                                 count++;
                             }
                         }
                     }
-                    Thread.Sleep(60 * 1000); //60 seconds delay
+                    #if DEBUG
+                    stopwatch.Stop();
+                    long ticks = stopwatch.ElapsedTicks;
+                    double ms = (1000000000.0 * ticks / Stopwatch.Frequency) / 1000000.0;
+                    await LoggingService.LogInformationAsync("UMS", $"{configs.Length} configs checked in {Math.Round(ms, 2).ToString().Replace(",", ".")}ms");
+                    #endif
+                    Thread.Sleep(30 * 1000); //30 seconds delay
                 }
+                #endregion
             });
 
             #region Start Threads
