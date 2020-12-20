@@ -107,8 +107,7 @@ namespace Cybernaut.Handlers
                                     await user.SendMessageAsync(embed:
                                         await EmbedHandler.CreateBasicEmbed("I am glad you came!",
                                         $"You entered the correct CAPTCHA.\n" +
-                                        $"**Welcome to {context.Guild.Name}.**",
-                                        Color.Blue));
+                                        $"**Welcome to {context.Guild.Name}.**"));
                                     File.Delete(@$"captchas/{context.Guild.Id}-{userCAPTCHA.userID}.png");
                                     break;
                                 }

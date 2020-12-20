@@ -25,7 +25,7 @@ namespace Cybernaut.Services
                 return await EmbedHandler.CreateErrorEmbed("Invite Error!", $"{context.Message.Author.Mention} i'm sorry but this bot is ether private\n" +
                     $"or there is no invite link provided by the Bot Owner.");
             return await EmbedHandler.CreateBasicEmbed("Invite Created.", $"{context.Message.Author.Mention} " +
-                $"[here]({GlobalData.Config.BotInviteLink}) is the invite you asked for.", Color.Blue);
+                $"[here]({GlobalData.Config.BotInviteLink}) is the invite you asked for.");
             #endregion
         }
 
@@ -100,7 +100,7 @@ namespace Cybernaut.Services
             jObj["mutedUsers"] = JToken.FromObject(newList);
             File.WriteAllText(configFile,
                        JsonConvert.SerializeObject(jObj, Formatting.Indented));
-            return await EmbedHandler.CreateBasicEmbed("Admin, Mute", $"{context.Guild.GetUser(newMutedUser.Id)} was muted for {time}", Color.Blue);
+            return await EmbedHandler.CreateBasicEmbed("Admin, Mute", $"{context.Guild.GetUser(newMutedUser.Id)} was muted for {time}");
             #endregion
         }
 
@@ -127,11 +127,11 @@ namespace Cybernaut.Services
 
                         File.WriteAllText(configFile,
                             JsonConvert.SerializeObject(jObj, Formatting.Indented));
-                        return await EmbedHandler.CreateBasicEmbed("Admin, Unmute", $"{user.Username} was unmuted.", Color.Blue);
+                        return await EmbedHandler.CreateBasicEmbed("Admin, Unmute", $"{user.Username} was unmuted.");
                     }
                 }
             }
-            return await EmbedHandler.CreateBasicEmbed("Admin, Unmute", $"{user.Username} wasn't unmuted.", Color.Blue);
+            return await EmbedHandler.CreateBasicEmbed("Admin, Unmute", $"{user.Username} wasn't unmuted.");
             #endregion
         }
 
@@ -184,11 +184,11 @@ namespace Cybernaut.Services
             }
             catch
             {
-                return await EmbedHandler.CreateBasicEmbed("Admin, Kick", $"**{user.Mention} has his/hers direct messages from server members disabled!**\n" +
-                    $"{user.Username} was kicked from the guild.", Color.Blue);
+                return await EmbedHandler.CreateErrorEmbed("Admin, Kick", $"**{user.Mention} has his/hers direct messages from server members disabled!**\n" +
+                    $"{user.Username} was kicked from the guild.");
             }
 
-            return await EmbedHandler.CreateBasicEmbed("Admin, Kick", $"{user.Username} was kicked from the guild.", Color.Blue);
+            return await EmbedHandler.CreateBasicEmbed("Admin, Kick", $"{user.Username} was kicked from the guild.");
             #endregion
         }
 
@@ -248,7 +248,7 @@ namespace Cybernaut.Services
                 return await EmbedHandler.CreateErrorEmbed("Admin, Kick", $"{e.Message}");
             }
 
-            return await EmbedHandler.CreateBasicEmbed("Admin, Kick", $"{guildMsg}", Color.Blue);
+            return await EmbedHandler.CreateBasicEmbed("Admin, Kick", $"{guildMsg}");
             #endregion
         }
     }

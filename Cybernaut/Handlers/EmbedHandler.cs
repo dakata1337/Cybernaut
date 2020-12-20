@@ -14,12 +14,12 @@ namespace Cybernaut.Handlers
 {
     public static class EmbedHandler
     {
-        public static async Task<Embed> CreateBasicEmbed(string title, string description, Color color)
+        public static async Task<Embed> CreateBasicEmbed(string title, string description, Color? color = null)
         {
             var embed = await Task.Run(() => (new EmbedBuilder()
                 .WithTitle(title)
                 .WithDescription(description)
-                .WithColor(color)
+                .WithColor(color == null ? Color.Blue : (Color)color)
                 .WithCurrentTimestamp().Build()));
             return embed;
         }
@@ -29,7 +29,7 @@ namespace Cybernaut.Handlers
             var embed = await Task.Run(() => (new EmbedBuilder()
                 .WithTitle(title)
                 .WithDescription(description)
-                .WithColor(Color.Orange)
+                .WithColor(Color.Red)
                 .WithCurrentTimestamp().Build()));
             return embed;
         }

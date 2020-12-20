@@ -29,7 +29,7 @@ namespace Cybernaut.Services
             await LoggingService.Log("UMS", Discord.LogSeverity.Info, "Loading UMS");
             var userManagementService = new Thread(async () =>
             {
-                #region Muted users check
+                #region Code
                 #if DEBUG
                 Stopwatch stopwatch = new Stopwatch();
                 #endif
@@ -38,87 +38,26 @@ namespace Cybernaut.Services
                     #if DEBUG
                     stopwatch.Restart();
                     #endif
-                    string[] configs = System.IO.Directory.GetFiles(GlobalData.Config.ConfigLocation, "*.json");
+                    string[] configs = Directory.GetFiles(GlobalData.Config.ConfigLocation, "*.json");
                     for (int i = 0; i < configs.Length; i++)
                     {
                         string configFile = configs[i];
-
-                        //await LoggingService.LogInformationAsync("UMS", $"Checking: {configFile}");
-
-
-                        /*
-                         * There is a slight chance of the program braking here because
-                         * If the file is being used at the same time as the confing is
-                         * being read the program will explode.
-                         * *Edit* Should be ok like this... i think.
-                         */
-
                         string json = string.Empty;
                         try
                         {
-                            using (FileStream stream = new FileInfo(configFile).Open(FileMode.Open, FileAccess.Read, FileShare.None))
+                            using (StreamReader sr = File.OpenText(configs[i]))
                             {
-                                stream.Close();
-                                json = File.ReadAllText(configFile);
+                                json = sr.ReadToEnd();
                             }
                         }
-                        catch (IOException) //This code will run if this event occurs 
+                        catch (IOException)
                         {
                             continue;
                         }
 
                         var jObj = (JObject)JsonConvert.DeserializeObject(json);
-                        JObject[] mutedUsers = jObj["mutedUsers"].ToObject<JObject[]>();
-                        List<JObject> newList = new List<JObject>();
 
-                        /* 
-                         * TODO:
-                         * Must add some type of spam detection. Maybe kick after 10 msgs?
-                         * Must make the mute check into a function and call it.
-                         */
-
-                        //Checks if the user is muted already
-                        if (!(mutedUsers is null))
-                        {
-                            newList = new List<JObject>(mutedUsers);
-                            int count = 0;
-                            foreach (JObject mutedUser in mutedUsers)
-                            {
-                                if (!(mutedUser is null))
-                                {
-                                    var userInfo = mutedUser.ToObject<UserInfo>();
-                                    var timeSpan = userInfo.ExpiresOn.Subtract(DateTime.Now);
-                                    if (timeSpan.CompareTo(TimeSpan.Zero) < 0)
-                                    {
-                                        newList.RemoveAt(count);
-                                        jObj["mutedUsers"] = JToken.FromObject(newList.ToArray());
-
-                                        var user = _client.GetUser(userInfo.Id);
-                                        var guild = _client.GetGuild(userInfo.GuildId);
-                                        await user.GetOrCreateDMChannelAsync();
-
-                                        try
-                                        {
-                                            await user.SendMessageAsync($"Your mute in {guild.Name} has just ended.");
-                                        }
-                                        catch (HttpException)
-                                        {
-                                            await LoggingService.LogInformationAsync("Guild", $"{user.Username}'s mute ended but he doesn't allow direct msgs.");
-                                            //Saving to file
-                                            File.WriteAllText(configFile,
-                                                JsonConvert.SerializeObject(jObj, Formatting.Indented));
-                                            continue;
-                                        }
-
-                                        await LoggingService.LogInformationAsync("Guild", $"{user.Username}'s mute ended.");
-                                        //Saving to file
-                                        File.WriteAllText(configFile,
-                                            JsonConvert.SerializeObject(jObj, Formatting.Indented));
-                                    }
-                                }
-                                count++;
-                            }
-                        }
+                        await MuteCheck(jObj, configFile);
                     }
                     #if DEBUG
                     stopwatch.Stop();
@@ -137,6 +76,50 @@ namespace Cybernaut.Services
 
             await LoggingService.Log("UMS", Discord.LogSeverity.Info, "UMS loaded");
             return Task.CompletedTask;
+        }
+
+        public async Task<Task> MuteCheck(JObject jObj, string configFile)
+        {
+            #region User Muted Check
+            JObject[] mutedUsers = jObj["mutedUsers"].ToObject<JObject[]>();
+            if (mutedUsers == null)
+                return Task.CompletedTask;
+
+            List<JObject> newList = new List<JObject>(mutedUsers);
+
+            int count = 0;
+            foreach (JObject mutedUser in mutedUsers)
+            {
+                var userInfo = mutedUser.ToObject<UserInfo>();
+                var timeSpan = userInfo.ExpiresOn.Subtract(DateTime.Now);
+                if (timeSpan.CompareTo(TimeSpan.Zero) < 0)
+                {
+                    newList.RemoveAt(count);
+                    jObj["mutedUsers"] = JToken.FromObject(newList.ToArray());
+
+                    var user = _client.GetUser(userInfo.Id);
+                    var guild = _client.GetGuild(userInfo.GuildId);
+                    var dmChannel = await user.GetOrCreateDMChannelAsync();
+
+                    try
+                    {
+                        await dmChannel.SendMessageAsync($"Your mute in {guild.Name} has just ended.");
+                    }
+                    catch (HttpException)
+                    {
+                        await guild.DefaultChannel.SendMessageAsync($"{user.Username}'s mute ended but he doesn't allow direct msgs.");
+                    }
+
+                    await LoggingService.LogInformationAsync("Guild", $"{user.Username}'s mute ended.");
+                    //Saving to file
+                    File.WriteAllText(configFile,
+                        JsonConvert.SerializeObject(jObj, Formatting.Indented));
+                }
+                count++;
+            }
+
+            return Task.CompletedTask;
+            #endregion
         }
     }
 }

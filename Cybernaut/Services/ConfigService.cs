@@ -26,7 +26,7 @@ namespace Cybernaut.Services
             #region Prefix Lenght Check
             if (prefix.Length > 15)
             {
-                return await EmbedHandler.CreateBasicEmbed("Configuration Error.", $"The prefix is to long. Must be 15 characters or less.", Color.Orange);
+                return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"The prefix is to long. Must be 15 characters or less.");
             }
             #endregion
 
@@ -40,7 +40,7 @@ namespace Cybernaut.Services
             var jObj = GetService.GetJObject(context.Guild);
 
             if ((string)jObj["Prefix"] == prefix)
-                return await EmbedHandler.CreateBasicEmbed("Configuration Error.", '\u0022' + prefix + '\u0022' + " is already the prefix.", Color.Orange);
+                return await EmbedHandler.CreateErrorEmbed("Configuration Error.", '\u0022' + prefix + '\u0022' + " is already the prefix.");
 
             jObj["Prefix"] = prefix;
 
@@ -48,7 +48,7 @@ namespace Cybernaut.Services
 
             return await EmbedHandler.CreateBasicEmbed("Configuration Changed.",  autoWhitelist == true ? 
                 $"The prefix was successfully changed to \"{prefix}\".\nAdded **{context.Channel.Name}** to the channel whitelist." : 
-                $"The prefix was successfully changed to \"{prefix}\".", Color.Blue);
+                $"The prefix was successfully changed to \"{prefix}\".");
             #endregion
         }
 
@@ -62,7 +62,7 @@ namespace Cybernaut.Services
             if (channel != null)
             {
                 if (context.Guild.GetChannel(channel.Id) != context.Guild.GetTextChannel(channel.Id)) //Checks if the selected channel is text channel
-                    return await EmbedHandler.CreateBasicEmbed("Configuration Error.", $"{context.Guild.GetChannel(channel.Id)} is not a text channel.", Color.Orange);
+                    return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"{context.Guild.GetChannel(channel.Id)} is not a text channel.");
             }
             #endregion
 
@@ -92,7 +92,7 @@ namespace Cybernaut.Services
                     #region Whitelist Limit Check
                     if (whitelistedChannels.Length > 100) //Limits the whitelisted channels to avoid massive file sizes
                     {
-                        return await EmbedHandler.CreateBasicEmbed("Configuration Error.", $"You have reached the maximum of 100 whitelisted channels.", Color.Orange);
+                        return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"You have reached the maximum of 100 whitelisted channels.");
                     }
                     #endregion
 
@@ -100,7 +100,7 @@ namespace Cybernaut.Services
                     foreach (ulong item in whitelistedChannels) 
                     {
                         if (item == channel.Id)
-                            return await EmbedHandler.CreateBasicEmbed("Configuration Error.", $"{context.Guild.GetChannel(item)} is already whitelisted!", Color.Orange);
+                            return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"{context.Guild.GetChannel(item)} is already whitelisted!");
                     }
                     #endregion
 
@@ -117,7 +117,7 @@ namespace Cybernaut.Services
                     File.WriteAllText(configFile,
                         JsonConvert.SerializeObject(jObj, Formatting.Indented));
                     #endregion
-                    return await EmbedHandler.CreateBasicEmbed("Configuration Changed.", $"{context.Guild.GetChannel(channel.Id)} was whitelisted.", Color.Blue);
+                    return await EmbedHandler.CreateBasicEmbed("Configuration Changed.", $"{context.Guild.GetChannel(channel.Id)} was whitelisted.");
 
                 case "remove":
                     #region Checks
@@ -161,7 +161,7 @@ namespace Cybernaut.Services
                     File.WriteAllText(configFile,
                         JsonConvert.SerializeObject(jObj, Formatting.Indented));
                     #endregion
-                    return await EmbedHandler.CreateBasicEmbed("Configuration Changed.", $"{context.Guild.GetChannel(channel.Id)} was removed from the whitelist.", Color.Blue);
+                    return await EmbedHandler.CreateBasicEmbed("Configuration Changed.", $"{context.Guild.GetChannel(channel.Id)} was removed from the whitelist.");
                 case "list":
                     #region Read Whitelisted Channels
                     StringBuilder builder = new StringBuilder();
@@ -172,7 +172,7 @@ namespace Cybernaut.Services
                         builder.Append($"{i + 1}. {whitelistedChannel.Name} (ID: {whitelistedChannel.Id})\n");
                     }
                     #endregion
-                    return await EmbedHandler.CreateBasicEmbed("Whitelist, List", $"{builder}", Color.Blue);
+                    return await EmbedHandler.CreateBasicEmbed("Whitelist, List", $"{builder}");
                 default:
                     return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"{arg} is not a valid argument. Please type {jObj["Prefix"]}commands for help.");
             }
@@ -217,7 +217,7 @@ namespace Cybernaut.Services
             File.WriteAllText(configFile, output);
             #endregion 
 
-            return await EmbedHandler.CreateBasicEmbed("Authentication Enabled.", $"Authentication is now enabled!", Color.Blue);
+            return await EmbedHandler.CreateBasicEmbed("Authentication Enabled.", $"Authentication is now enabled!");
         }
 
 
@@ -237,7 +237,7 @@ namespace Cybernaut.Services
             File.WriteAllText(configFile, output);
             #endregion
 
-            return await EmbedHandler.CreateBasicEmbed("Authentication Disabled.", $"Authentication is now disabled!", Color.Blue);
+            return await EmbedHandler.CreateBasicEmbed("Authentication Disabled.", $"Authentication is now disabled!");
         }
 
         private static async Task<Embed> ChangeAuthenticationRole(IRole role, SocketCommandContext context)
@@ -256,7 +256,7 @@ namespace Cybernaut.Services
             File.WriteAllText(configFile, output);
             #endregion
 
-            return await EmbedHandler.CreateBasicEmbed("Authentication Configuration.", $"\"{role.Name}\" is now the authentication role.", Color.Blue);
+            return await EmbedHandler.CreateBasicEmbed("Authentication Configuration.", $"\"{role.Name}\" is now the authentication role.");
         }
 
         private static async Task<Embed> AuthenticationStatus(SocketCommandContext context)
@@ -307,7 +307,7 @@ namespace Cybernaut.Services
             #endregion
 
             string status = ((bool)jObj["RequireCAPTCHA"] == true ? "enabled" : "disabled");
-            return await EmbedHandler.CreateBasicEmbed("Authentication Configuration.", $"RequireCAPTCHA is now {status}.", Color.Blue);
+            return await EmbedHandler.CreateBasicEmbed("Authentication Configuration.", $"RequireCAPTCHA is now {status}.");
         }
         #endregion
     }

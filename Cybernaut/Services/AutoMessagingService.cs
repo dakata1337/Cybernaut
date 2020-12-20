@@ -67,33 +67,37 @@ namespace Cybernaut.Services
                 }
             }
             #endregion
-            #endregion
             return Task.CompletedTask;
+            #endregion
         }
 
-        public async Task<Task> UserAuth(SocketGuildUser user)
+        private async Task<Task> UserAuth(SocketGuildUser user)
         {
             #region Code
             #region Reading config
             string configFile = GetService.GetConfigLocation(user.Guild);
-
-            var json = File.ReadAllText(configFile);
             var jObj = GetService.GetJObject(user.Guild);
             #endregion
 
+            #region Give Role On Join check
             if ((bool)jObj["GiveRoleOnJoin"] == false)
                 return Task.CompletedTask;
+            #endregion
 
+            #region Role check
             //Get Auth Role
-            IRole role = user.Guild.GetRole((ulong)jObj["RoleOnJoin"]);
-
-            //Checks if an auth role is set
-            if (role is null)
-                return Task.CompletedTask;
+            IRole role = null;
+            try { role = user.Guild.GetRole((ulong)jObj["RoleOnJoin"]); }
+            catch { 
+                await user.Guild.DefaultChannel.SendMessageAsync(embed: 
+                await EmbedHandler.CreateBasicEmbed("Error",$"{user.Username} joined but there is no role with the id: {jObj["RoleOnJoin"]}.", Discord.Color.Red)); 
+                return Task.CompletedTask; 
+            }
+            #endregion 
 
             #region RequireCAPTCHA Check
             //If RequireCAPTCHA is false give role straight away
-            if (jObj["RequireCAPTCHA"].ToObject<bool>() == false)
+            if ((bool)jObj["RequireCAPTCHA"] == false)
             {
                 await user.AddRoleAsync(role);
                 return Task.CompletedTask;
@@ -172,6 +176,52 @@ namespace Cybernaut.Services
             return Task.CompletedTask;
             #endregion
         }
+        private string GetRandomCAPTCHA()
+        {
+            #region Code
+            string alphabet = "abcdefghijklmnopqrstuvwxyz";
+            int number;
+
+            string captcha = string.Empty;
+            Random random = new Random();
+            for (int i = 0; i < 8; i++)
+            {
+                number = random.Next(0, alphabet.Length);
+                if (random.Next(0, 100) >= 30)
+                    captcha += alphabet[number];
+                else
+                    captcha += char.ToUpper(alphabet[number]);
+            }
+            return captcha;
+            #endregion
+        }
+
+        private Bitmap GetCaptchaImage(string captchaAnswer)
+        {
+            #region Code
+            var image = new Bitmap(165, 35);
+            var font = new Font("TimesNewRoman", 28, FontStyle.Bold, GraphicsUnit.Pixel);
+            var graphics = Graphics.FromImage(image);
+
+            Random rnd = new Random();
+            SolidBrush brushColor = new SolidBrush(System.Drawing.Color.FromArgb(rnd.Next(256), rnd.Next(256), rnd.Next(256)));
+
+            graphics.DrawString(captchaAnswer, font, brushColor, new Point(0, 0));
+
+            Pen pen = new Pen(Brushes.Gray) { Width = 1 };
+
+            for (int i = 0; i < 8; i++)
+            {
+                int x0 = rnd.Next(0, image.Width);
+                int y0 = rnd.Next(0, image.Height);
+                int x1 = rnd.Next(0, image.Width);
+                int y1 = rnd.Next(0, image.Height);
+                graphics.DrawLine(pen, x0, y0, x1, x1);
+            }
+
+            return image;
+            #endregion
+        }
 
         public async Task OnGuildJoin(SocketGuild guild)
         {
@@ -211,51 +261,9 @@ namespace Cybernaut.Services
             var channel = guild.DefaultChannel as SocketTextChannel;
 
             await channel.SendMessageAsync(embed: 
-                await EmbedHandler.CreateCustomEmbed(guild, Discord.Color.Blue, fields, "I have arrived!", true, $"Thank you for choosing {guild.CurrentUser.Username}")); //Sends the Embed
+                await EmbedHandler.CreateCustomEmbed(guild, Discord.Color.Blue, fields, 
+                "I have arrived!", true, $"Thank you for choosing {guild.CurrentUser.Username}")); //Sends the Embed
             #endregion
-        }
-
-        private string GetRandomCAPTCHA()
-        {
-            string alphabet = "abcdefghijklmnopqrstuvwxyz";
-            int number = 0;
-
-            string captcha = string.Empty;
-            Random random = new Random();
-            for (int i = 0; i < 8; i++)
-            {
-                number = random.Next(0, alphabet.Length);
-                if(random.Next(0,100) >= 30)
-                    captcha += alphabet[number];
-                else
-                    captcha += char.ToUpper(alphabet[number]);
-            }
-            return captcha;
-        }
-
-        private Bitmap GetCaptchaImage(string captchaAnswer)
-        {
-            var image = new Bitmap(165, 35);
-            var font = new Font("TimesNewRoman", 28, FontStyle.Bold, GraphicsUnit.Pixel);
-            var graphics = Graphics.FromImage(image);
-
-            Random rnd = new Random();
-            SolidBrush brushColor = new SolidBrush(System.Drawing.Color.FromArgb(rnd.Next(256), rnd.Next(256), rnd.Next(256)));
-
-            graphics.DrawString(captchaAnswer, font, brushColor, new Point(0,0));
-
-            Pen pen = new Pen(Brushes.Gray) { Width = 1 };
-
-            for (int i = 0; i < 8; i++)
-            {
-                int x0 = rnd.Next(0, image.Width);
-                int y0 = rnd.Next(0, image.Height);
-                int x1 = rnd.Next(0, image.Width);
-                int y1 = rnd.Next(0, image.Height);
-                graphics.DrawLine(pen, x0, y0, x1, x1);
-            }
-
-            return image;
         }
     }
 }
