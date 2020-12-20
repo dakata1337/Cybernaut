@@ -39,10 +39,4 @@ namespace Cybernaut.DataStructs
         public string name { get; set; }
         public string url { get; set; }
     }
-
-    class MinecraftPlayer
-    {
-        public string name { get; set; }
-        public string id { get; set; }
-    }
 }
