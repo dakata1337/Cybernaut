@@ -38,11 +38,18 @@ namespace Cybernaut.Services
                     #if DEBUG
                     stopwatch.Restart();
                     #endif
+                    //Get all files with extension .json
                     string[] configs = Directory.GetFiles(GlobalData.Config.ConfigLocation, "*.json");
+
                     for (int i = 0; i < configs.Length; i++)
                     {
+                        //Current Config
                         string configFile = configs[i];
+
+                        //JSON data
                         string json = string.Empty;
+
+                        //Try reading the file
                         try
                         {
                             using (StreamReader sr = File.OpenText(configs[i]))
@@ -55,8 +62,10 @@ namespace Cybernaut.Services
                             continue;
                         }
 
+                        //Deserialize config to JObject
                         var jObj = (JObject)JsonConvert.DeserializeObject(json);
 
+                        //Check for Muted Users 
                         await MuteCheck(jObj, configFile);
                     }
                     #if DEBUG
@@ -81,41 +90,56 @@ namespace Cybernaut.Services
         public async Task<Task> MuteCheck(JObject jObj, string configFile)
         {
             #region User Muted Check
+            //get mutedUsers 
             JObject[] mutedUsers = jObj["mutedUsers"].ToObject<JObject[]>();
+
+            //If there are none return
             if (mutedUsers == null)
                 return Task.CompletedTask;
 
+            //Make List with User Info
             List<JObject> newList = new List<JObject>(mutedUsers);
 
-            int count = 0;
+            int userCounter = 0;
             foreach (JObject mutedUser in mutedUsers)
             {
+                //Create User object
                 var userInfo = mutedUser.ToObject<UserInfo>();
+
+                //Convert to timeSpan
                 var timeSpan = userInfo.ExpiresOn.Subtract(DateTime.Now);
+
+                //Check if the time has passed
                 if (timeSpan.CompareTo(TimeSpan.Zero) < 0)
                 {
-                    newList.RemoveAt(count);
+                    //Remove user from the list
+                    newList.RemoveAt(userCounter);
+
+                    //Save the list to the config
                     jObj["mutedUsers"] = JToken.FromObject(newList.ToArray());
 
+                    //Get user, guild & DM channel
                     var user = _client.GetUser(userInfo.Id);
                     var guild = _client.GetGuild(userInfo.GuildId);
                     var dmChannel = await user.GetOrCreateDMChannelAsync();
 
+                    //Try notifying the user
                     try
                     {
                         await dmChannel.SendMessageAsync($"Your mute in {guild.Name} has just ended.");
                     }
                     catch (HttpException)
                     {
-                        await guild.DefaultChannel.SendMessageAsync($"{user.Username}'s mute ended but he doesn't allow direct msgs.");
+                        //If the user doesnt allow DM send it to the server
+                        await guild.DefaultChannel.SendMessageAsync($"{user.Mention}'s mute ended but he doesn't allow direct msgs.");
                     }
 
                     await LoggingService.LogInformationAsync("Guild", $"{user.Username}'s mute ended.");
-                    //Saving to file
+                    //Save Config to File
                     File.WriteAllText(configFile,
                         JsonConvert.SerializeObject(jObj, Formatting.Indented));
                 }
-                count++;
+                userCounter++;
             }
 
             return Task.CompletedTask;
