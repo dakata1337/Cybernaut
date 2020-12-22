@@ -4,6 +4,7 @@ using Discord;
 using Discord.Net;
 using Discord.WebSocket;
 using Microsoft.VisualBasic.CompilerServices;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Concurrent;
@@ -14,6 +15,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Victoria.Enums;
 
 namespace Cybernaut.Services
 {
@@ -30,9 +32,10 @@ namespace Cybernaut.Services
         private static BlockingCollection<Exception> exceptionQueue = new BlockingCollection<Exception>();
         private static BlockingCollection<ConsoleColor> colorQueue = new BlockingCollection<ConsoleColor>();
 
-        public static async Task<Task> InitializeAsync()
+        public static Task Initialize()
         {
-            await ArchiveOldLog();
+            //Archive the old log
+            ArchiveOldLog();
 
             string latestLog = "logs/latest.log";
             var loggingThread = new Thread(async () =>
@@ -57,7 +60,7 @@ namespace Cybernaut.Services
                 {
                     string src = sourceQueue.Take();
                     string msg = messageQueue.Take();
-                    
+
                     if (GlobalData.Config.logToFile)
                     {
                         await LogToFile($"[{src}] " + msg + Environment.NewLine, latestLog);
@@ -86,7 +89,7 @@ namespace Cybernaut.Services
 
                     switch (exception)
                     {
-                        case GatewayReconnectException: 
+                        case GatewayReconnectException:
                             await AddToQueue("Gateway", exception.Message, ConsoleColor.Yellow);
                             break;
                         case WebSocketClosedException:
@@ -96,7 +99,7 @@ namespace Cybernaut.Services
                             await AddToQueue("Gateway", exception.Message, ConsoleColor.Yellow);
                             break;
                         default:
-                            await AddToQueue("Unknown Exception", exception.ToString(), ConsoleColor.DarkYellow);
+                            await AddToQueue(exception.Source, exception.ToString(), ConsoleColor.DarkYellow);
                             break;
                     }
                 }
@@ -114,11 +117,11 @@ namespace Cybernaut.Services
         }
 
         #region Archive logs
-        private static async Task<Task> ArchiveOldLog()
+        private static void ArchiveOldLog()
         {
             FileInfo latest = new FileInfo(@"logs/latest.log");
             if (!latest.Exists)
-                return Task.CompletedTask;
+                return;
 
             var zipName = $@"logs/{latest.CreationTime.ToString("dd_MM_yyyy-H_mm_ss")}.zip";
 
@@ -129,15 +132,6 @@ namespace Cybernaut.Services
             Thread.Sleep(100);
             File.Create(@"logs/latest.log").Dispose();
             File.SetCreationTimeUtc(@"logs/latest.log", DateTime.UtcNow);
-            return Task.CompletedTask;
-        }
-        
-        private static Random random = new Random();
-        public static string RandomString(int length)
-        {
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            return new string(Enumerable.Repeat(chars, length)
-              .Select(s => s[random.Next(s.Length)]).ToArray());
         }
         #endregion
 
@@ -167,9 +161,41 @@ namespace Cybernaut.Services
             #if DEBUG
             if (message is null)
                 await Task.CompletedTask;
-            else if (message.Length != 0)
-                if (severity != LogSeverity.Info)
-                    await AddToQueue(src, message, GetSeverityColor(severity));
+            else if (message.Length == 0)
+                await Task.CompletedTask;
+
+            var jObj = (JObject)JsonConvert.DeserializeObject(message);
+            StringBuilder builder = new StringBuilder();
+            if(jObj["op"].ToObject<string>() == "stats")
+            {
+                src = "LavaLink";
+                var memused = jObj["memory"]["used"];
+                var cpuCores = jObj["cpu"]["cores"];
+                var lavalinkLoad = Math.Round(jObj["cpu"]["lavalinkLoad"].ToObject<double>(), 2);
+                var lavalinkUptime = jObj["uptime"];
+                builder.Append($"Mem: {memused}; CPU Load: {lavalinkLoad}%; Uptime: {lavalinkUptime}");
+            }
+            else if (jObj["op"].ToObject<string>() == "playerUpdate")
+            {
+                src = "LavaLink";
+                builder.Append($"State position: {jObj["state"]["position"].ToObject<int>() / 1000}sec in Guild: {jObj["guildId"]}");
+            }
+            else if (jObj["op"].ToObject<string>() == "event")
+            {
+                
+                if(jObj["type"].ToObject<string>() == "TrackEndEvent")
+                {
+                    src = "TrackEndEvent";
+                    builder.Append($"Track ended in Guild: {jObj["guildId"]} | Reason: {jObj["reason"]}");
+                }
+                else if (jObj["type"].ToObject<string>() == "TrackStartEvent")
+                {
+                    src = "TrackStartEvent";
+                    builder.Append($"Track started: {jObj["track"]} in Guild: {jObj["guildId"]}");
+                }
+            }
+
+            await AddToQueue(src, builder.ToString(), GetSeverityColor(severity));
             #endif
         }
         #endregion
@@ -200,7 +226,7 @@ namespace Cybernaut.Services
                     }
                     break;
                 }
-                catch (Exception e) { continue; }
+                catch { continue; }
             }
             await Task.CompletedTask;
         }

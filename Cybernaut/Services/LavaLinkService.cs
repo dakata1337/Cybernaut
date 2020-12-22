@@ -140,6 +140,7 @@ namespace Cybernaut.Services
                     if (keepRunning)
                     {
                         #region Send available songs list
+                        //Show the first 5 songs from the search
                         StringBuilder builder = new StringBuilder();
                         builder.Append("**You have 1 minute to select a song**\n");
                         for (int i = 0; i < 5; i++)
@@ -147,12 +148,13 @@ namespace Cybernaut.Services
                             builder.Append($"{i + 1}. {search.Tracks[i].Title}\n");
                         }
 
+                        //Send the message to the channel
                         var select = await context.Channel.SendMessageAsync(null, false,
                             await EmbedHandler.CreateBasicEmbed("Music, Select", builder.ToString()));
                         #endregion
 
                         #region Reaction Check
-                        //await select.AddReactionsAsync(emojis);
+                        //React to the comment
                         var emotes = new[]
                         {
                             new Emoji("1️⃣"),
@@ -164,10 +166,8 @@ namespace Cybernaut.Services
                         };
                         await select.AddReactionsAsync(emotes);
                         
-
-                        var start = DateTime.UtcNow.AddMinutes(1);
-
-                        bool timesUp = false;
+                        //Set entime one minute from running the command
+                        var endTime = DateTime.UtcNow.AddMinutes(1);
                         while (keepRunning)
                         {
                             for (int i = 0; i < emotes.Length; i++)
@@ -196,8 +196,8 @@ namespace Cybernaut.Services
                                     }
                                 }
                             }
-
-                            if (start < DateTime.UtcNow)
+                            //This will be true if one minute has passed
+                            if (endTime < DateTime.UtcNow)
                             {
                                 await context.Channel.SendMessageAsync(null, false, await EmbedHandler.CreateBasicEmbed("Time is up!", "You won't be able to select a song."));
                                 return;
@@ -973,6 +973,10 @@ namespace Cybernaut.Services
                 if (playlistInfo.name != arg2)
                     continue;
 
+                //Playlist songs limit
+                if (playlist["songs"].Count() == 100)
+                    return await EmbedHandler.CreateErrorEmbed("Music, Playlist", $"You have reached the limit for songs in **{playlistInfo.name}**");
+
                 #region Varibales
                 List<JObject> newSongs = new List<JObject>();
 
@@ -982,6 +986,8 @@ namespace Cybernaut.Services
 
                 #region Checks if the song is already in the playlist
                 var f = (object)playlist["songs"];
+
+                //Check if the song is already added to the playlist ONLY if there are songs in the playlist
                 if (playlist["songs"].HasValues)
                 {
                     newSongs = playlist["songs"].ToObject<List<JObject>>();
@@ -991,6 +997,7 @@ namespace Cybernaut.Services
                         {
                             var songInfo = song.ToObject<Song>();
 
+                            //If the specified song is a link
                             if (Uri.IsWellFormedUriString(arg4, UriKind.Absolute))
                             {
                                 search = await _lavaNode.SearchAsync(arg4);
@@ -1008,16 +1015,13 @@ namespace Cybernaut.Services
                         }
                     }
                 }
-                #endregion
-
-                #region Checks if "songs" HasValues
-                if (!playlist["songs"].HasValues)
+                else //If there are no songs in the playlist, add the song
                 {
+                    
                     if (Uri.IsWellFormedUriString(arg4, UriKind.Absolute))
                     {
                         search = await _lavaNode.SearchAsync(arg4);
                         track = search.Tracks.FirstOrDefault();
-
                     }
                     else
                     {
@@ -1034,7 +1038,7 @@ namespace Cybernaut.Services
 
                 File.WriteAllText(GetService.GetConfigLocation(context.Guild),
                         JsonConvert.SerializeObject(jObj, Formatting.Indented));
-                return await EmbedHandler.CreateBasicEmbed("Music, Playlist", $"{track.Title} was added to {playlistInfo.name}.");
+                return await EmbedHandler.CreateBasicEmbed("Music, Playlist", $"**{track.Title}** was added to **{playlistInfo.name}**.");
                 #endregion
             }
 
@@ -1154,14 +1158,15 @@ namespace Cybernaut.Services
                 await args.Player.TextChannel.SendMessageAsync("Next item in queue is not a track.");
                 return;
             }
-
+            LavaTrack finishedTrack = args.Track;
             LavaTrack track = next;
 
             await args.Player.PlayAsync(track);
 
             await LoggingService.LogInformationAsync("TrackEnded", $"Now playing {track.Title} ({args.Player.VoiceChannel.Guild.Id})");
             await args.Player.TextChannel.SendMessageAsync(
-                embed: await EmbedHandler.CreateBasicEmbed("Music, Next Song", $"Now playing: [{track.Title}]({track.Url})"));
+                embed: await EmbedHandler.CreateBasicEmbed("Music, Next Song", $"**[{finishedTrack.Title}]({finishedTrack.Url})** finished.\n" +
+                $"Now playing: **[{track.Title}]({track.Url})**"));
             #endregion
         }
 
