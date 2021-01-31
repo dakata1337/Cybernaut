@@ -1069,7 +1069,6 @@ namespace Cybernaut.Services
 
                     return await EmbedHandler.CreateBasicEmbed("Music, Playlist", $"**{songInfo.name}** was removed from **{playlistInfo.name}**.");
                 }
-
                 playlistFound = true;
             }
             #endregion
