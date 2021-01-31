@@ -227,18 +227,22 @@ namespace Cybernaut.Services
         {
             #region Code
             string configLocation = GetService.GetConfigLocation(guild);
-            if (!File.Exists(configLocation))
-            {
-                string json = JsonConvert.SerializeObject(GuildData.GenerateNewConfig(GlobalData.Config.DefaultPrefix), Formatting.Indented);
-                var jObj = JsonConvert.DeserializeObject<JObject>(json);
 
-                if (jObj["whitelistedChannels"].Value<JArray>().Count == 0)
-                {
-                    ulong[] ts = { guild.DefaultChannel.Id };
-                    jObj["whitelistedChannels"] = JToken.FromObject(ts);
-                }
-                File.WriteAllText(configLocation, JsonConvert.SerializeObject(jObj, Formatting.Indented), new UTF8Encoding(false));
+            //If for some reason the server has config
+            if (File.Exists(configLocation))
+            {
+                File.Delete(configLocation);
             }
+
+            string json = JsonConvert.SerializeObject(GuildData.GenerateNewConfig(GlobalData.Config.DefaultPrefix), Formatting.Indented);
+            var jObj = JsonConvert.DeserializeObject<JObject>(json);
+
+            if (jObj["whitelistedChannels"].Value<JArray>().Count == 0)
+            {
+                ulong[] ts = { guild.DefaultChannel.Id };
+                jObj["whitelistedChannels"] = JToken.FromObject(ts);
+            }
+            File.WriteAllText(configLocation, JsonConvert.SerializeObject(jObj, Formatting.Indented), new UTF8Encoding(false));
 
             #region Custom Embed 
             var fields = new List<EmbedFieldBuilder>();
@@ -246,7 +250,7 @@ namespace Cybernaut.Services
             {
                 Name = "**NOTE**",
                 Value = $"By default, {guild.DefaultChannel.Mention} is the default bot channel.\n" +
-                $"If you want to change it go to the channel and type {GlobalData.Config.DefaultPrefix}prefix YourPrefixHere",
+                $"If you want to change it go to the channel and type {jObj["Prefix"]}prefix YourPrefixHere",
                 IsInline = false
             });
 

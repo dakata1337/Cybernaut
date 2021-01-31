@@ -20,7 +20,7 @@ namespace Cybernaut.DataStructs
             if (!File.Exists(ConfigPath))
             {
                 json = JsonConvert.SerializeObject(GenerateNewConfig(), Formatting.Indented);
-                File.WriteAllText("config.json", json, new UTF8Encoding(false));
+                File.WriteAllText(ConfigPath, json, new UTF8Encoding(false));
                 await LoggingService.LogCriticalAsync("Config", "config.json was created. Please modify the config to your liking.");
                 await Task.Delay(-1);
             }

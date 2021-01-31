@@ -125,7 +125,6 @@ namespace Cybernaut.Services
                 .BuildServiceProvider();
         }
 
-        #region Custom whatever
         private async Task<Task> GuildAvailable(SocketGuild arg)
         {
             await LoggingService.LogInformationAsync("Guild", $"Connected to {arg.Name}");
@@ -152,7 +151,6 @@ namespace Cybernaut.Services
             return Task.CompletedTask;
             #endregion
         }
-        #endregion
 
         #region Logging
         private async Task LogAsync(LogMessage logMessage)

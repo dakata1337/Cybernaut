@@ -16,15 +16,20 @@ namespace Cybernaut.Services
         public static JObject GetJObject(IGuild guild)
         {
             #region Code
+            //Get Config Location
             string configFile = GetConfigLocation(guild).ToString();
+
+            //Config string
             var json = File.ReadAllText(configFile);
 
+            //Deserialize Config string
             return (JObject)JsonConvert.DeserializeObject(json);
             #endregion
         }
 
         public static string GetConfigLocation(IGuild guild)
         {
+            //Returns config location
             return $@"{GlobalData.Config.ConfigLocation}\{guild.Id}.json";
         }
 

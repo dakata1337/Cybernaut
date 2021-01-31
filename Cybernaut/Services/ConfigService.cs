@@ -33,14 +33,13 @@ namespace Cybernaut.Services
             #endregion
 
             #region Code
-            var json = string.Empty;
             string configFile = GetService.GetConfigLocation(context.Guild);
             bool autoWhitelist = false;
 
             var jObj = GetService.GetJObject(context.Guild);
 
             if ((string)jObj["Prefix"] == prefix)
-                return await EmbedHandler.CreateErrorEmbed("Configuration Error.", '\u0022' + prefix + '\u0022' + " is already the prefix.");
+                return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"\"{prefix}\" is already the prefix.");
 
             jObj["Prefix"] = prefix;
 

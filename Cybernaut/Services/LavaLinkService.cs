@@ -39,6 +39,11 @@ namespace Cybernaut.Services
             }
             #endregion
 
+            #region User VC Check
+            if (user.VoiceChannel is null)
+                return await EmbedHandler.CreateErrorEmbed("Music, Join", "You can't use this command because you aren't in a Voice Channel!");
+            #endregion
+
             #endregion
 
             #region Code
@@ -302,11 +307,14 @@ namespace Cybernaut.Services
                     await player.StopAsync();
                 }
 
+                //Voice Channel
+                var vc = player.VoiceChannel;
+
                 //Leave the voice channel.
-                await _lavaNode.LeaveAsync(player.VoiceChannel);
+                await _lavaNode.LeaveAsync(vc);
 
                 //Log information to Console & Discord
-                await LoggingService.LogInformationAsync("LeaveAsync", $"Bot has left \"{player.VoiceChannel}\". ({context.Guild.Id})");
+                await LoggingService.LogInformationAsync("LeaveAsync", $"Bot has left \"{vc}\". ({context.Guild.Id})");
                 return await EmbedHandler.CreateBasicEmbed("LeaveAsync", $"I'm sorry that I gave you up :'(.", Color.Purple);
             }
 
@@ -498,6 +506,9 @@ namespace Cybernaut.Services
                 //If the player is Playing
                 if (player.PlayerState is PlayerState.Playing)
                 {
+                    //Clear queue
+                    player.Queue.ToList().ForEach(x => player.Queue.Remove(x));
+
                     //Stop player
                     await player.StopAsync();
 
@@ -1294,7 +1305,7 @@ namespace Cybernaut.Services
                 return await EmbedHandler.CreateErrorEmbed(src, "I'm not connected to a voice channel.");
 
             if (user.VoiceChannel is null)
-                return await EmbedHandler.CreateErrorEmbed(src, "You can't use this command because you aren't in a Voice Channel!"); ;
+                return await EmbedHandler.CreateErrorEmbed(src, "You can't use this command because you aren't in a Voice Channel!");
 
             if (_lavaNode.GetPlayer(guild).VoiceChannel.Id != user.VoiceChannel.Id)
                 return await EmbedHandler.CreateErrorEmbed(src, "You can't use this command because you aren't in the same channel as the bot!");
