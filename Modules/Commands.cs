@@ -158,7 +158,7 @@ namespace Discord_Bot.Modules
         [Command("Move")]
         [RequireUserPermission(GuildPermission.Administrator)]
         [Summary("Moves the user from channel to channe, N times.")]
-        public async Task Spin(IGuildUser user, int times)
+        public async Task Move(IGuildUser user, int times)
         {
             try
             {
@@ -182,7 +182,7 @@ namespace Discord_Bot.Modules
 
                 for (int i = 0; i < times; i++)
                 {
-                    await user.ModifyAsync(x => x.Channel = channels.ElementAt(times % 2 == 0 ? 0 : 1));
+                    await user.ModifyAsync(x => x.Channel = channels.ElementAt(i % 2 == 0 ? 0 : 1));
                     await Task.Delay(750);
                 }
 
