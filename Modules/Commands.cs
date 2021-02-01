@@ -20,6 +20,7 @@ namespace Discord_Bot.Modules
         private MySQL _mySQL;
         private Music _music;
         private GuildConfigHandler _guildConfigHandler;
+        private HelpModule _helpModule;
         public Commands(IServiceProvider serviceProvider)
         {
             _commandService = serviceProvider.GetRequiredService<CommandService>();
@@ -27,19 +28,20 @@ namespace Discord_Bot.Modules
             _connection = _mySQL.connection;
             _music = serviceProvider.GetRequiredService<Music>();
             _guildConfigHandler = serviceProvider.GetRequiredService<GuildConfigHandler>();
+            _helpModule = serviceProvider.GetRequiredService<HelpModule>();
         }
 
         #region Help Commands
         [Command("Help")]
         [Summary("Shows all commands.")]
         public async Task Help()
-            => await ReplyAsync(embed: await HelpModule.Help(Context, _commandService));
+            => await Context.User.SendMessageAsync(embed: await _helpModule.Help(Context, _commandService));
 
         [Command("About")]
         [Summary("Gives more info about a specific command.")]
         public async Task About(
             [Summary("The name of the command you want to know more about")] string command)
-            => await ReplyAsync(embed: await HelpModule.About(Context, _commandService, command));
+            => await Context.User.SendMessageAsync(embed: await _helpModule.About(Context, _commandService, command));
         #endregion
 
         #region Music Commands
@@ -153,7 +155,8 @@ namespace Discord_Bot.Modules
                 .WithCurrentTimestamp()
                 .Build());
 
-        [Command("Move"), RequireUserPermission(GuildPermission.Administrator)]
+        [Command("Move")]
+        [RequireUserPermission(GuildPermission.Administrator)]
         [Summary("Moves the user from channel to channe, N times.")]
         public async Task Spin(IGuildUser user, int times)
         {
@@ -196,13 +199,15 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region Administration
-        [Command("Prefix"), RequireUserPermission(GuildPermission.Administrator)]
+        [Command("Prefix")]
+        [RequireUserPermission(GuildPermission.Administrator)]
         [Summary("Changes Guild prefix.")]
         public async Task Prefix(
             [Summary("The prefix you want to use in your Discord server")]string prefix)
             => await ReplyAsync(embed: await _guildConfigHandler.ChangePrefix(Context, prefix));
 
-        [Command("Whitelist"), RequireUserPermission(GuildPermission.Administrator)]
+        [Command("Whitelist")]
+        [RequireUserPermission(GuildPermission.Administrator)]
         [Summary("Adds Text Channels to Whitelist.")]
         public async Task Whitelist(
             [Summary("Arguments:\n" +

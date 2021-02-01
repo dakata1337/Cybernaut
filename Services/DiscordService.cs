@@ -10,6 +10,7 @@ using Discord_Bot.Services;
 using Discord_Bot.Handlers;
 using Discord.Commands;
 using Victoria;
+using Interactivity;
 
 namespace Discord_Bot
 {
@@ -19,7 +20,6 @@ namespace Discord_Bot
         private ServiceProvider _services;
         private CommandHandler _commandHandler;
         private LavaNode _lavaNode;
-        private MySQL _mySQL;
         private GuildConfigHandler _guildConfigHandler;
         private Music _music;
         public DiscordService()
@@ -47,7 +47,6 @@ namespace Discord_Bot
             _commandHandler = _services.GetRequiredService<CommandHandler>();
             _lavaNode = _services.GetRequiredService<LavaNode>();
             _music = _services.GetRequiredService<Music>();
-            _mySQL = _services.GetRequiredService<MySQL>();
             _guildConfigHandler = _services.GetRequiredService<GuildConfigHandler>();
         }
 
@@ -114,6 +113,8 @@ namespace Discord_Bot
                 .AddSingleton<MySQL>()
                 .AddSingleton<GuildConfigHandler>()
                 .AddSingleton<Music>()
+                .AddSingleton<HelpModule>()
+                .AddSingleton<InteractivityService>()
                 .BuildServiceProvider();
         }
     }

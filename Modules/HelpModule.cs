@@ -7,12 +7,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Discord.WebSocket;
 
 namespace Discord_Bot.Modules
 {
     public class HelpModule
     {
-        public static async Task<Embed> Help(SocketCommandContext context, CommandService commandService)
+        private IServiceProvider _serviceProvider;
+        public HelpModule(IServiceProvider serviceProvider)
+        {
+            _serviceProvider = serviceProvider;
+        }
+
+        public async Task<Embed> Help(SocketCommandContext context, CommandService commandService)
         {
             //Embed Builder
             EmbedBuilder embedBuilder = new EmbedBuilder().WithTitle("Here's a list of commands and their description: ").WithColor(Color.Green);
@@ -20,12 +27,23 @@ namespace Discord_Bot.Modules
             //Get Guild Config
             GlobalData.GuildConfigs.TryGetValue(context.Guild.Id, out GuildConfig config);
 
+            //Get Guild User
+            var guildUser = context.Guild.GetUser(context.User.Id);
+
             //Loop thru all commands
             foreach (CommandInfo command in commandService.Commands.ToList())
             {
                 //If command name is 'help' skip it
                 if (command.Name.ToLower() == "help")
                     continue;
+
+                var preconditionResult = await command.CheckPreconditionsAsync(context);
+
+                //Check if the user can execute the command
+                if (!preconditionResult.IsSuccess)
+                    continue;
+
+                var z = guildUser.GuildPermissions;
 
                 //Add Field
                 embedBuilder.AddField(command.Name, new StringBuilder()
@@ -35,7 +53,7 @@ namespace Discord_Bot.Modules
             //Build Embed and return
             return embedBuilder.Build();
         }
-        public static async Task<Embed> About(SocketCommandContext context, CommandService commandService, string command)
+        public async Task<Embed> About(SocketCommandContext context, CommandService commandService, string command)
         {
             bool found = false;
             //Get Guild Config

@@ -214,8 +214,10 @@ namespace Discord_Bot.Modules
         public void UpdateGuildConfig(IGuild guild, string whatToUpdate, string value)
         {
             string command = $"UPDATE GuildConfigurable SET {whatToUpdate} = '{value}' WHERE guildId = '{guild.Id}'";
-            MySqlCommand cmd = new MySqlCommand(command, connection);
-            cmd.ExecuteNonQuery();
+            using(MySqlCommand cmd = new MySqlCommand(command, connection))
+            {
+                cmd.ExecuteNonQuery();
+            }
         }
 
         /// <summary>

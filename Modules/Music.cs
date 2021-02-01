@@ -19,6 +19,7 @@ using Discord_Bot.DataStrucs;
 using System.Globalization;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using Interactivity;
 
 namespace Discord_Bot.Modules
 {
@@ -26,10 +27,12 @@ namespace Discord_Bot.Modules
     {
         private readonly LavaNode _lavaNode;
         private readonly MySQL _mySQL;
+        private readonly InteractivityService _interactivityService;
         public Music(IServiceProvider serviceProvider)
         { 
             _lavaNode = serviceProvider.GetRequiredService<LavaNode>();
             _mySQL = serviceProvider.GetRequiredService<MySQL>();
+            _interactivityService = serviceProvider.GetRequiredService<InteractivityService>();
         }
 
         #region Join
@@ -184,77 +187,28 @@ namespace Discord_Bot.Modules
                         #region Send available songs list
                         //Show the first 5 songs from the search
                         StringBuilder builder = new StringBuilder();
-                        builder.Append("**You have 1 minute to select a song**\n");
+                        builder.Append("**You have 1 minute to select a song by typing the number of the song.**\n");
                         for (int i = 0; i < 5; i++)
                         {
                             builder.Append($"{i + 1}. {search.Tracks[i].Title}\n");
                         }
 
                         //Send the message to the channel
-                        var select = await context.Channel.SendMessageAsync(null, false,
-                            await EmbedHandler.CreateBasicEmbed("Music, Select", builder.ToString()));
+                        var select = await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Select", builder.ToString()), context);
                         #endregion
 
-                        #region Reaction Check
-                        //All Emotes
-                        var emotes = new[]
+                        #region Reply Check
+
+                        var result = await _interactivityService.NextMessageAsync(x => x.Author == context.User);
+                        string reply = result.Value.Content;
+
+                        if (!int.TryParse(reply, out int index))
                         {
-                            new Emoji("1️⃣"),
-                            new Emoji("2️⃣"),
-                            new Emoji("3️⃣"),
-                            new Emoji("4️⃣"),
-                            new Emoji("5️⃣"),
-                            new Emoji("🚫")
-                        };
-
-                        //React to the comment
-                        await select.AddReactionsAsync(emotes);
-
-                        //Set endtime one minute from running the command
-                        var endTime = DateTime.UtcNow.AddMinutes(1);
-
-                        bool stopOuter = true;
-                        while (stopOuter)
-                        {
-                            //Goes through all emotes
-                            for (int i = 0; i < emotes.Length; i++)
-                            {
-                                if (!stopOuter)
-                                    break;
-
-                                //Gets all reacted users for the current emote
-                                var reactedUsers = await select.GetReactionUsersAsync(emotes[i], 1).FlattenAsync();
-                                foreach (var reactedUser in reactedUsers)
-                                {
-                                    //If the user who requested the song reacted
-                                    if (!reactedUser.IsBot && reactedUser.Id == context.Message.Author.Id)
-                                    {
-                                        //If the user selected the last emote (cancel)
-                                        if (i == emotes.Length - 1)
-                                        {
-                                            await SendMessage(embed: await EmbedHandler.CreateBasicEmbed("Music, Select", $"{user.Username} cancelled the selection."), context);
-                                            return;
-                                        }
-
-                                        //This is used to break out of all loops
-                                        stopOuter = false;
-
-                                        //Set the track to the selected one
-                                        track = search.Tracks[i];
-                                        break;
-                                    }
-                                }
-                            }
-                            //This will be true if one minute has passed
-                            if (endTime < DateTime.UtcNow)
-                            {
-                                await SendMessage(await EmbedHandler.CreateBasicEmbed("Time is up!", $"{user.Username} you won't be able to select a song."), context);
-                                return;
-                            }
-
-                            //Wait .5s before next Scan
-                            Thread.Sleep(500);
+                            await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Select", "The reply isn't an intiger!"), context);
+                            return;
                         }
+
+                        track = search.Tracks[index - 1];
                         #endregion
 
                         #endregion
@@ -1360,7 +1314,7 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region Send Message
-        private Task SendMessage(Embed embed, SocketCommandContext context)
+        private Task<Discord.Rest.RestUserMessage> SendMessage(Embed embed, SocketCommandContext context)
         {
             return context.Channel.SendMessageAsync(embed: embed);
         }
