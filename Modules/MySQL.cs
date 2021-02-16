@@ -217,6 +217,7 @@ namespace Discord_Bot.Modules
             using(MySqlCommand cmd = new MySqlCommand(command, connection))
             {
                 cmd.ExecuteNonQuery();
+                cmd.Dispose();
             }
         }
 

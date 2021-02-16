@@ -111,181 +111,192 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region Play
-        public Task Play(SocketCommandContext context, string query, bool playNext = false)
+        public async Task PlayAsync(SocketCommandContext context, string query, bool playNext = false)
         {
-            var thread = new Thread(async () =>
-            {
-                var user = context.User as SocketGuildUser;
+            var user = context.User as SocketGuildUser;
 
-                Embed sameChannel = await SameChannelAsBot(context.Guild, user, "PlayAsync");
-                //Checks If User is in the same Voice Channel as the bot.
-                if (sameChannel != null)
+            Embed sameChannel = await SameChannelAsBot(context.Guild, user, "PlayAsync");
+            //Checks If User is in the same Voice Channel as the bot.
+            if (sameChannel != null)
+            {
+                await SendMessage(sameChannel, context);
+                return;
+            }
+
+            try
+            {
+                //Get the player for that guild.
+                var player = _lavaNode.GetPlayer(context.Guild);
+
+                LavaTrack track = null;
+                var search = new SearchResponse();
+
+
+                //If query starts with "path:" try load track form location 
+                if (query.StartsWith("path:"))
                 {
-                    await SendMessage(sameChannel, context);
-                    return;
+                    query = query.Remove(0, 5);
+                    search = await _lavaNode.SearchAsync(@$"{query}");
+
+                    track = search.Tracks.FirstOrDefault();
                 }
 
-                try
+                //Search for the query
+                else if (Uri.IsWellFormedUriString(query, UriKind.Absolute))
                 {
-                    //Get the player for that guild.
-                    var player = _lavaNode.GetPlayer(context.Guild);
+                    search = await _lavaNode.SearchAsync(query);
 
-                    LavaTrack track = null;
-                    var search = new SearchResponse();
-
-                    //If query starts with "path:" try load track form location 
-                    if (query.StartsWith("path:"))
+                    #region LoadFailed/NoMatches Check
+                    //If load failed, tell the user
+                    if (search.LoadStatus == LoadStatus.LoadFailed)
                     {
-                        query = query.Remove(0, 5);
-                        search = await _lavaNode.SearchAsync(@$"{query}");
-
-                        track = search.Tracks.FirstOrDefault();
-                    }
-
-                    //Search for the query
-                    else if (Uri.IsWellFormedUriString(query, UriKind.Absolute))
-                    {
-                        search = await _lavaNode.SearchAsync(query);
-
-                        //If load failed, tell the user
-                        if (search.LoadStatus == LoadStatus.LoadFailed)
-                        {
-                            await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", $"Failed to load {query}.\n{search.Exception.Message}"), context);
-                            return;
-                        }
-
-                        //If we couldn't find anything, tell the user.
-                        if (search.LoadStatus == LoadStatus.NoMatches)
-                        {
-                            await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", $"I wasn't able to find anything for {query}."), context);
-                            return;
-                        }
-
-                        track = search.Tracks.FirstOrDefault();
-                    }
-                    else
-                    {
-                        #region If the Query isn't a link
-                        search = await _lavaNode.SearchYouTubeAsync(query);
-
-                        #region LoadFailed/NoMatches Check
-                        //If load failed, tell the user
-                        if (search.LoadStatus == LoadStatus.LoadFailed)
-                        {
-                            await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", $"Failed to load {query}.\n{search.Exception.Message}"), context);
-                            return;
-                        }
-
-                        //If we couldn't find anything, tell the user.
-                        if (search.LoadStatus == LoadStatus.NoMatches)
-                        {
-                            await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", $"I wasn't able to find anything for {query}."), context);
-                            return;
-                        }
-                        #endregion
-
-                        #region Send available songs list
-                        //Show the first 5 songs from the search
-                        StringBuilder builder = new StringBuilder();
-                        builder.Append("**You have 1 minute to select a song by typing the number of the song.**\n");
-                        for (int i = 0; i < 5; i++)
-                        {
-                            builder.Append($"{i + 1}. {search.Tracks[i].Title}\n");
-                        }
-
-                        //Send the message to the channel
-                        var select = await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Select", builder.ToString()), context);
-                        #endregion
-
-                        #region Reply Check
-
-                        var result = await _interactivityService.NextMessageAsync(x => x.Author == context.User);
-                        string reply = result.Value.Content;
-
-                        if (!int.TryParse(reply, out int index))
-                        {
-                            await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Select", "The reply isn't an intiger!"), context);
-                            return;
-                        }
-
-                        track = search.Tracks[index - 1];
-                        #endregion
-
-                        #endregion
-                    }
-
-
-                    #region Update Volume
-                    //Get Guild Config
-                    GlobalData.GuildConfigs.TryGetValue(context.Guild.Id, out GuildConfig config);
-
-                    //Get islooping Bool
-                    string status = config.isLooping == true ? "looping" : "playing";
-
-                    //Update Player Volume
-                    await player.UpdateVolumeAsync((ushort)config.volume);
-                    #endregion
-
-                    #region Plays / Adds song to queue
-                    if (playNext)
-                    {
-                        //If the Player is not playing & Queue is empty play the song
-                        if (player.PlayerState != PlayerState.Playing && player.Queue.Count == 0)
-                        {
-                            await player.PlayAsync(track);
-                            await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: [{track.Title}]({track.Url})"), context);
-                            return;
-                        }
-
-                        //Save the Queue
-                        List<LavaTrack> orignalQueue = new List<LavaTrack>(player.Queue);
-
-                        //Clear the Queue
-                        player.Queue.Clear();
-
-                        //Add the song first
-                        player.Queue.Enqueue(track);
-
-                        //Then add the old songs from the old Queue
-                        for (int i = 0; i < orignalQueue.Count; i++)
-                            player.Queue.Enqueue(orignalQueue[i]);
-
-                        await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Play", $"**[{track.Title}]({track.Url})** was added on the top of the queue."), context);
+                        await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", $"Failed to load {query}.\n{search.Exception.Message}"), context);
                         return;
                     }
-                    else
+
+                    //If we couldn't find anything, tell the user.
+                    if (search.LoadStatus == LoadStatus.NoMatches)
                     {
-                        //If the Bot is already playing music, or if it is paused but still has music in the playlist, Add the requested track to the queue.
-                        if (player.Track != null && player.PlayerState is PlayerState.Playing || player.PlayerState is PlayerState.Paused)
-                        {
-                            player.Queue.Enqueue(track);
-                            LoggingService.Log("PlayAsync", $"\"{track.Title}\" has been added to the music queue. ({context.Guild.Id})");
-                            await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Play", $"**[{track.Title}]({track.Url})** has been added to queue."), context);
-                            return;
-                        }
-                    
-                        //Play the track
-                        await player.PlayAsync(track);
+                        await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", $"I wasn't able to find anything for {query}."), context);
+                        return;
+                    }
+                    #endregion
+
+                    track = search.Tracks.FirstOrDefault();
+                }
+                else
+                {
+                    #region If the Query isn't a link
+                    search = await _lavaNode.SearchYouTubeAsync(query);
+
+                    #region LoadFailed/NoMatches Check
+                    //If load failed, tell the user
+                    if (search.LoadStatus == LoadStatus.LoadFailed)
+                    {
+                        await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", $"Failed to load {query}.\n{search.Exception.Message}"), context);
+                        return;
                     }
 
-                    //Log information to Console & Discord
-                    LoggingService.Log("PlayAsync", $"Bot now {status}: {track.Title} ({context.Guild.Id})");
-                    if(Uri.IsWellFormedUriString(track.Url, UriKind.Absolute))
-                        await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: [{track.Title}]({track.Url})"), context);
-                    else
-                        await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: {track.Url}"), context);
-                    return;
+                    //If we couldn't find anything, tell the user.
+                    if (search.LoadStatus == LoadStatus.NoMatches)
+                    {
+                        await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", $"I wasn't able to find anything for {query}."), context);
+                        return;
+                    }
+                    #endregion
+
+                    #region Send available songs list
+                    //Show the first 5 songs from the search
+                    StringBuilder builder = new StringBuilder();
+                    builder.Append("**You have 1 minute to select a song by typing the number of the song.**\n");
+                    for (int i = 0; i < 5; i++)
+                    {
+                        builder.Append($"{i + 1}. {search.Tracks[i].Title}\n");
+                    }
+
+                    //Send the message to the channel
+                    var select = await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Select", builder.ToString()), context);
+                    #endregion
+
+                    #region Reply Check
+
+                    var result = await _interactivityService.NextMessageAsync(x => x.Author == context.User);
+                    string reply = result.Value.Content;
+
+                    if (!int.TryParse(reply, out int index))
+                    {
+                        await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Select", "The reply isn't an intiger!"), context);
+                        return;
+                    }
+
+                    track = search.Tracks[index - 1];
+                    #endregion
+
                     #endregion
                 }
-                catch (Exception ex) //Throws the error in discord
-                {
-                    await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", ex.Message), context);
-                }
-            });
 
-            thread.IsBackground = true;
-            thread.Start();
-            return Task.CompletedTask;
+
+                #region Update Volume
+                //Get Guild Config
+                GlobalData.GuildConfigs.TryGetValue(context.Guild.Id, out GuildConfig config);
+
+                //Get islooping Bool
+                string status = config.isLooping == true ? "looping" : "playing";
+
+                //Update Player Volume
+                await player.UpdateVolumeAsync((ushort)config.volume);
+                #endregion
+
+                #region Plays / Adds song to queue
+                if (playNext)
+                {
+                    await SendMessage(await AddOnTopOfQueueAsync(context, track), context);
+                    return;
+                }
+                else
+                {
+                    //If the Bot is already playing music, or if it is paused but still has music in the playlist, Add the requested track to the queue.
+                    if (player.Track != null && player.PlayerState is PlayerState.Playing || player.PlayerState is PlayerState.Paused)
+                    {
+                        player.Queue.Enqueue(track);
+                        LoggingService.Log("PlayAsync", $"\"{track.Title}\" has been added to the music queue. ({context.Guild.Id})");
+                        await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Play", $"**[{track.Title}]({track.Url})** has been added to queue."), context);
+                        return;
+                    }
+
+                    //Play the track
+                    await player.PlayAsync(track);
+                }
+
+                //Log information to Console & Discord
+                LoggingService.Log("PlayAsync", $"Bot now {status}: {track.Title} ({context.Guild.Id})");
+                if (Uri.IsWellFormedUriString(track.Url, UriKind.Absolute))
+                    await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: [{track.Title}]({track.Url})"), context);
+                else
+                    await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: {track.Url}"), context);
+                return;
+                #endregion
+            }
+            catch (Exception ex) //Throws the error in discord
+            {
+                await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", ex.Message), context);
+            }
+        }
+        #endregion
+
+        #region Add on Top of Queue
+        public async Task<Embed> AddOnTopOfQueueAsync(SocketCommandContext context, LavaTrack track)
+        {
+            var player = _lavaNode.GetPlayer(context.Guild);
+
+            //Get Guild Config
+            GlobalData.GuildConfigs.TryGetValue(context.Guild.Id, out GuildConfig config);
+
+            //Get islooping Bool
+            string status = config.isLooping == true ? "looping" : "playing";
+
+
+            //If the Player is not playing & Queue is empty play the song
+            if (player.PlayerState != PlayerState.Playing && player.Queue.Count == 0)
+            {
+                await player.PlayAsync(track);
+                return await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: [{track.Title}]({track.Url})");
+            }
+
+            //Save the Queue
+            List<LavaTrack> orignalQueue = new List<LavaTrack>(player.Queue);
+
+            //Clear the Queue
+            player.Queue.Clear();
+
+            //Add the song first
+            player.Queue.Enqueue(track);
+
+            //Then add the old songs from the old Queue
+            for (int i = 0; i < orignalQueue.Count; i++)
+                player.Queue.Enqueue(orignalQueue[i]);
+
+            return await EmbedHandler.CreateBasicEmbed("Music, Play", $"**[{track.Title}]({track.Url})** was added on the top of the queue.");
         }
         #endregion
 
@@ -705,7 +716,7 @@ namespace Discord_Bot.Modules
                 return await EmbedHandler.CreateErrorEmbed("Music, Lyrics", "The bot is currently not playing music.");
 
             //Get Context
-            var dmChannel = (IDMChannel)context.Message.Author.GetOrCreateDMChannelAsync();
+            IDMChannel dmChannel = await context.Message.Author.GetOrCreateDMChannelAsync();
 
             //Gets Lyrics from Genius
             string lyrics = await player.Track.FetchLyricsFromGeniusAsync();
@@ -853,6 +864,8 @@ namespace Discord_Bot.Modules
             //True if Playlist found OR all Playlist names shown
             if (found)
                 return await EmbedHandler.CreateBasicEmbed("Music, Playlist", $"{builder}");
+            if (!found && arg2 == null)
+                return await EmbedHandler.CreateBasicEmbed("Music, Playlist", "No playlists where found!");
             else
                 return await EmbedHandler.CreateBasicEmbed("Music, Playlist", $"{arg2} was not found.");
             #endregion
@@ -909,6 +922,9 @@ namespace Discord_Bot.Modules
                         //Disables the "Playlist not found" message
                         found = true;
 
+                        SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Playlist",
+                                    $"**{playlistInfo.name}** is being loaded as we speak!"), context);
+
                         var player = _lavaNode.GetPlayer(context.Guild);
                         foreach (JObject song in playlist["songs"])
                         {
@@ -920,10 +936,20 @@ namespace Discord_Bot.Modules
                             var search = await _lavaNode.SearchAsync(songInfo.url);
 
                             if (search.LoadStatus.Equals(LoadStatus.LoadFailed))
-                                return await EmbedHandler.CreateErrorEmbed("Music, Playlist", $"Failed to load [{songInfo.name}]({songInfo.url}).");
+                            {
+                                SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Playlist", 
+                                    $"Failed to load [{songInfo.name}]({songInfo.url}).\n" +
+                                    $"Please check if the url is working!"), context);
+                                continue;
+                            }
 
                             if (search.LoadStatus.Equals(LoadStatus.NoMatches))
-                                return await EmbedHandler.CreateErrorEmbed("Music, Playlist", $"[{songInfo.name}]({songInfo.url}) was not found.");
+                            {
+                                SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Playlist",
+                                    $"Failed to load {songInfo.url}.\n" +
+                                    $"Please check if the url is working!"), context);
+                                continue;
+                            }
 
                             //Get First track found
                             track = search.Tracks.FirstOrDefault();
@@ -957,11 +983,11 @@ namespace Discord_Bot.Modules
             if (found)
             {
                 LoggingService.Log("Playlist", $"{arg2} was loaded successfully.");
-                return await EmbedHandler.CreateBasicEmbed("Music, Playlist", $"{arg2} was loaded.");
+                return await EmbedHandler.CreateBasicEmbed("Music, Playlist", $"**{arg2}** was loaded.");
             }
             else
-                return await EmbedHandler.CreateBasicEmbed("Music, Playlist", $"{arg2} was not found.\n" +
-                                $"Use ```{config.prefix}playlist show``` to see all playlist.");
+                return await EmbedHandler.CreateBasicEmbed("Music, Playlist", $"**{arg2}** was not found.\n" +
+                                $"Use {config.prefix}playlist show to see all playlist.");
             #endregion
         }
 
@@ -1118,8 +1144,14 @@ namespace Discord_Bot.Modules
                 #endregion
 
                 #region Add song to playlist and save config
+                //Remove forbidden chars from the title
+                string safeTrackName = track.Title.Replace("\"", "");
+
+                if (safeTrackName.Length == 0)
+                    return await EmbedHandler.CreateErrorEmbed("Music, Playlist", "Forbidden Track name!");
+
                 //Adds the new song
-                newSongs.Add(JObject.FromObject(new Song() { name = $"{track.Title}", url = $"{track.Url}" }));
+                newSongs.Add(JObject.FromObject(new Song() { name = $"{safeTrackName}", url = $"{track.Url}" }));
                 playlist["songs"] = JToken.FromObject(newSongs);
 
                 //Saves Config
@@ -1192,10 +1224,10 @@ namespace Discord_Bot.Modules
             //Get Guild Playlists
             JArray playlists = config.playlists;
 
-            List<JArray> newPlaylists = null;
+            List<JObject> newPlaylists = new List<JObject>();
             foreach (var playlist in playlists)
             {
-                newPlaylists.Add((JArray)playlist);
+                newPlaylists.Add((JObject)playlist);
             }
 
             int playlistIndex = 0;
@@ -1216,7 +1248,7 @@ namespace Discord_Bot.Modules
 
                 //Saves Config
                 _mySQL.UpdateGuildConfig(context.Guild, "playlists", JsonConvert.SerializeObject(JToken.FromObject(newPlaylists), Formatting.None));
-                return await EmbedHandler.CreateBasicEmbed("Music, Playlist", $"{playlistInfo.name} was removed.");
+                return await EmbedHandler.CreateBasicEmbed("Music, Playlist", $"*{playlistInfo.name}* was removed.");
                 #endregion
             }
 

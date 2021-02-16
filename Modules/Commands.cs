@@ -10,6 +10,7 @@ using Discord_Bot.DataStrucs;
 using Discord_Bot.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using MySql.Data.MySqlClient;
+using Victoria;
 
 namespace Discord_Bot.Modules
 {
@@ -21,6 +22,8 @@ namespace Discord_Bot.Modules
         private Music _music;
         private GuildConfigHandler _guildConfigHandler;
         private HelpModule _helpModule;
+        private readonly LavaNode _lavaNode;
+
         public Commands(IServiceProvider serviceProvider)
         {
             _commandService = serviceProvider.GetRequiredService<CommandService>();
@@ -29,6 +32,7 @@ namespace Discord_Bot.Modules
             _music = serviceProvider.GetRequiredService<Music>();
             _guildConfigHandler = serviceProvider.GetRequiredService<GuildConfigHandler>();
             _helpModule = serviceProvider.GetRequiredService<HelpModule>();
+            _lavaNode = serviceProvider.GetRequiredService<LavaNode>();
         }
 
         #region Help Commands
@@ -59,13 +63,13 @@ namespace Discord_Bot.Modules
         [Summary("The Bot plays a song.")]
         public async Task Play(
             [Summary("Song name/url")][Remainder] string search)
-            => await _music.Play(Context, search);
+            => await _music.PlayAsync(Context, search);
 
         [Command("Playnext")]
         [Summary("The Bot adds the song on top of the queue.")]
         public async Task PlayNext(
             [Summary("Song name/url")][Remainder] string search)
-            => await _music.Play(Context, search, true);
+            => await _music.PlayAsync(Context, search, playNext: true);
 
         [Command("Skip")]
         [Summary("The Bot skips the current song.")]
@@ -196,10 +200,63 @@ namespace Discord_Bot.Modules
                 return;
             }
         }
+
+        [Command("WhoAsked")]
+        [Summary("Who asked?")]
+        public async Task WhoAsked()
+        {
+            //Checks if the bot is already connected
+            _lavaNode.TryGetPlayer(Context.Guild, out LavaPlayer player);
+
+            var guildUser = (SocketGuildUser)Context.User;
+
+            if (_lavaNode.HasPlayer(Context.Guild) && player != null && player.VoiceChannel != guildUser.VoiceChannel)
+            {
+                await ReplyAsync(embed: await EmbedHandler.CreateErrorEmbed("Music, Join", "I'm already connected to a voice channel!"));
+                return;
+            }
+            
+            var voiceState = Context.User as IVoiceState;
+            if (voiceState.VoiceChannel is null) 
+            {
+                await ReplyAsync(embed: await EmbedHandler.CreateErrorEmbed("Music, Join", "You can't use this command because you aren't in a Voice Channel!"));
+                return;
+            }
+
+            await _music.JoinAsync(Context);
+            if(player == null)
+                player = _lavaNode.GetPlayer(Context.Guild);
+
+            LavaTrack currentTrack = player.PlayerState == Victoria.Enums.PlayerState.Playing ? player.Track : null;
+
+            GlobalData.GuildConfigs.TryGetValue(Context.Guild.Id, out GuildConfig config);
+
+            var searchResult = await _lavaNode.SearchAsync("https://www.youtube.com/watch?v=OTYmsqMKbOw");
+
+            var track = searchResult.Tracks.FirstOrDefault();
+            if (player.PlayerState == Victoria.Enums.PlayerState.Playing)
+            {
+                //Add the current song on top of the Queue
+                await _music.AddOnTopOfQueueAsync(Context, currentTrack);
+
+                //Add 'Who asked' song on top of the Queue
+                await _music.AddOnTopOfQueueAsync(Context, track);
+
+                //Skip the Track - play 'Who asked' song
+                await player.SkipAsync();
+            }
+            else
+            {
+                await player.UpdateVolumeAsync((ushort)config.volume);
+                await player.PlayAsync(track);
+            }
+            return;
+        }
+
         #endregion
 
         #region Administration
-        [Command("Prefix")]
+            [Command("Prefix")]
         [RequireUserPermission(GuildPermission.Administrator)]
         [Summary("Changes Guild prefix.")]
         public async Task Prefix(

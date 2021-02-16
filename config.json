@@ -1,0 +1,11 @@
+﻿{
+  "token": "YourToken",
+  "gameStatus": "",
+  "defaultPrefix": "``",
+  "cacheUpdateTime": 2000,
+  "DB_Server": "",
+  "DB_Port": "",
+  "DB_User": "",
+  "DB_Password": "",
+  "DB_Database": ""
+}

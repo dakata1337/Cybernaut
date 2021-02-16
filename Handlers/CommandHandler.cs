@@ -30,23 +30,8 @@ namespace Discord_Bot.Handlers
 
         public void HookEvents()
         {
-            _commands.Log += LogAsync;
             _client.MessageReceived += HandleCommandAsync;
             _commands.CommandExecuted += CommandExecutedAsync;
-        }
-
-        private Task LogAsync(LogMessage arg)
-        {
-            switch (arg.Severity)
-            {
-                case LogSeverity.Info:
-                    LoggingService.Log(arg.Source, arg.Message);
-                    break;
-                default:
-                    LoggingService.Log(arg.Source, arg.Message, ConsoleColor.Red);
-                    break;
-            }
-            return Task.CompletedTask;
         }
 
         private async Task<Task> HandleCommandAsync(SocketMessage socketMessage)

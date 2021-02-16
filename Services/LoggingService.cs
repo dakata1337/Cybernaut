@@ -40,7 +40,7 @@ namespace Discord_Bot.Services
             Log("Log", "LoggingService initialized", ConsoleColor.Cyan);
         }
 
-        //Victoria Logger
+        //Regular Logger
         #region Regular Logger
         /// <summary>
         /// Log messages to the Console. Console colors are controlled by Severity level
