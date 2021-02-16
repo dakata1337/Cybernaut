@@ -256,7 +256,7 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region Administration
-            [Command("Prefix")]
+        [Command("Prefix")]
         [RequireUserPermission(GuildPermission.Administrator)]
         [Summary("Changes Guild prefix.")]
         public async Task Prefix(
