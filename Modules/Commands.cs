@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -46,6 +48,12 @@ namespace Discord_Bot.Modules
         public async Task About(
             [Summary("The name of the command you want to know more about")] string command)
             => await Context.User.SendMessageAsync(embed: await _helpModule.About(Context, _commandService, command));
+
+        [Command("Uptime")]
+        [Summary("Shows Bot Uptime")]
+        public async Task Uptime()
+            => await ReplyAsync(embed: await EmbedHandler.CreateBasicEmbed("Uptime", $"My Uptime is: " +
+                $"{(DateTime.UtcNow - Process.GetCurrentProcess().StartTime.ToUniversalTime()).ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture)}"));
         #endregion
 
         #region Music Commands
