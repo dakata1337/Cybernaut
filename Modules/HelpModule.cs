@@ -70,10 +70,10 @@ namespace Discord_Bot.Modules
                 found = true;
 
                 //Description
-                stringBuilder.Append($"{_command.Summary ?? "No description available"} ");
+                stringBuilder.Append($"{_command.Summary ?? "No description available"}\n");
 
                 //Usage
-                stringBuilder.Append("Usage: " + Environment.NewLine);
+                stringBuilder.Append("How to use: " + Environment.NewLine);
                 var commandInfo = _command.Parameters;
                 stringBuilder.Append($"```\n{config.prefix}{_command.Name.ToLower()} {string.Join(' ', commandInfo)}\n```");
 

@@ -50,7 +50,7 @@ namespace Discord_Bot.Modules
             => await Context.User.SendMessageAsync(embed: await _helpModule.About(Context, _commandService, command));
 
         [Command("Uptime")]
-        [Summary("Shows Bot Uptime")]
+        [Summary("Shows Bot Uptime.")]
         public async Task Uptime()
             => await ReplyAsync(embed: await EmbedHandler.CreateBasicEmbed("Uptime", $"My Uptime is: " +
                 $"{(DateTime.UtcNow - Process.GetCurrentProcess().StartTime.ToUniversalTime()).ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture)}"));
