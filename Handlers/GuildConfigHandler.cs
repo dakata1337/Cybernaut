@@ -28,11 +28,8 @@ namespace Discord_Bot.Handlers
         //On Guild Join Create Config
         public async Task JoinedGuild(SocketGuild guild)
         {
-            //If the guild has config, delete it
-            if (_mySQL.GuildHasConfig(guild))
-            {
-                _mySQL.RemoveGuildConfig(guild);
-            }
+            //Check if the guild has config - if true delete it
+            await LeftGuild(guild);
 
             //Guild Defualt Channel
             var defaultChannel = guild.DefaultChannel as SocketTextChannel;
@@ -48,6 +45,15 @@ namespace Discord_Bot.Handlers
 
                 //Custom Embed
                 var fields = new List<EmbedFieldBuilder>();
+
+                fields.Add(new EmbedFieldBuilder{
+                    Name = "**How to use**",
+                    Value = $"**My current prefix is \"{GlobalData.Config.defaultPrefix}\".\n"+
+                    $"If you want to change it you can {GlobalData.Config.defaultPrefix}prefix YourPrefix.\n"+
+                    $"To see all commands type {GlobalData.Config.defaultPrefix}help.",
+                    IsInline = false
+                });
+
                 fields.Add(new EmbedFieldBuilder
                 {
                     Name = "**Please Note**",
@@ -73,9 +79,7 @@ namespace Discord_Bot.Handlers
         public Task LeftGuild(SocketGuild guild)
         {
             if (_mySQL.GuildHasConfig(guild))
-            {
                 _mySQL.RemoveGuildConfig(guild);
-            }
             return Task.CompletedTask;
         }
 
@@ -83,9 +87,7 @@ namespace Discord_Bot.Handlers
         {
             //If prefix lenght is more than 5 chars long
             if (newPrefix.Length > 5)
-            {
                 return await EmbedHandler.CreateErrorEmbed("Configuration Error.", $"The prefix is to long. Must be 5 characters or less.");
-            }
 
             //Get Guild Config
             GlobalData.GuildConfigs.TryGetValue(context.Guild.Id, out GuildConfig config);
