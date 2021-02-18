@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,7 +20,9 @@ namespace Discord_Bot.Services
         public static void Initialize()
         {
             //Cyrillic support
-            Console.OutputEncoding = Encoding.Unicode;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                Console.OutputEncoding = Encoding.Unicode;
+
             Thread thread = new Thread(() => 
             {
                 while (true)
