@@ -119,7 +119,7 @@ namespace Discord_Bot.Modules
             //Checks If User is in the same Voice Channel as the bot.
             if (sameChannel != null)
             {
-                await SendMessage(sameChannel, context);
+                await SendMessageAsync(sameChannel, context);
                 return;
             }
 
@@ -150,14 +150,14 @@ namespace Discord_Bot.Modules
                     //If load failed, tell the user
                     if (search.LoadStatus == LoadStatus.LoadFailed)
                     {
-                        await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", $"Failed to load {query}.\n{search.Exception.Message}"), context);
+                        await SendMessageAsync(await EmbedHandler.CreateErrorEmbed("Music, Play", $"Failed to load {query}.\n{search.Exception.Message}"), context);
                         return;
                     }
 
                     //If we couldn't find anything, tell the user.
                     if (search.LoadStatus == LoadStatus.NoMatches)
                     {
-                        await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", $"I wasn't able to find anything for {query}."), context);
+                        await SendMessageAsync(await EmbedHandler.CreateErrorEmbed("Music, Play", $"I wasn't able to find anything for {query}."), context);
                         return;
                     }
                     #endregion
@@ -173,14 +173,14 @@ namespace Discord_Bot.Modules
                     //If load failed, tell the user
                     if (search.LoadStatus == LoadStatus.LoadFailed)
                     {
-                        await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", $"Failed to load {query}.\n{search.Exception.Message}"), context);
+                        await SendMessageAsync(await EmbedHandler.CreateErrorEmbed("Music, Play", $"Failed to load {query}.\n{search.Exception.Message}"), context);
                         return;
                     }
 
                     //If we couldn't find anything, tell the user.
                     if (search.LoadStatus == LoadStatus.NoMatches)
                     {
-                        await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", $"I wasn't able to find anything for {query}."), context);
+                        await SendMessageAsync(await EmbedHandler.CreateErrorEmbed("Music, Play", $"I wasn't able to find anything for {query}."), context);
                         return;
                     }
                     #endregion
@@ -195,7 +195,7 @@ namespace Discord_Bot.Modules
                     }
 
                     //Send the message to the channel
-                    var select = await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Select", builder.ToString()), context);
+                    var select = await SendMessageAsync(await EmbedHandler.CreateBasicEmbed("Music, Select", builder.ToString()), context);
                     #endregion
 
                     #region Reply Check
@@ -205,7 +205,7 @@ namespace Discord_Bot.Modules
 
                     if (!int.TryParse(reply, out int index))
                     {
-                        await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Select", "The reply isn't an intiger!"), context);
+                        await SendMessageAsync(await EmbedHandler.CreateErrorEmbed("Music, Select", "The reply isn't an intiger!"), context);
                         return;
                     }
 
@@ -230,7 +230,7 @@ namespace Discord_Bot.Modules
                 #region Plays / Adds song to queue
                 if (playNext)
                 {
-                    await SendMessage(await AddOnTopOfQueueAsync(context, track), context);
+                    await SendMessageAsync(await AddOnTopOfQueueAsync(context, track), context);
                     return;
                 }
                 else
@@ -240,7 +240,7 @@ namespace Discord_Bot.Modules
                     {
                         player.Queue.Enqueue(track);
                         LoggingService.Log("PlayAsync", $"\"{track.Title}\" has been added to the music queue. ({context.Guild.Id})");
-                        await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Play", $"**[{track.Title}]({track.Url})** has been added to queue."), context);
+                        await SendMessageAsync(await EmbedHandler.CreateBasicEmbed("Music, Play", $"**[{track.Title}]({track.Url})** has been added to queue."), context);
                         return;
                     }
 
@@ -251,15 +251,15 @@ namespace Discord_Bot.Modules
                 //Log information to Console & Discord
                 LoggingService.Log("PlayAsync", $"Bot now {status}: {track.Title} ({context.Guild.Id})");
                 if (Uri.IsWellFormedUriString(track.Url, UriKind.Absolute))
-                    await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: [{track.Title}]({track.Url})"), context);
+                    await SendMessageAsync(await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: [{track.Title}]({track.Url})"), context);
                 else
-                    await SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: {track.Url}"), context);
+                    await SendMessageAsync(await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: {track.Url}"), context);
                 return;
                 #endregion
             }
             catch (Exception ex) //Throws the error in discord
             {
-                await SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Play", ex.Message), context);
+                await SendMessageAsync(await EmbedHandler.CreateErrorEmbed("Music, Play", ex.Message), context);
             }
         }
         #endregion
@@ -922,7 +922,7 @@ namespace Discord_Bot.Modules
                         //Disables the "Playlist not found" message
                         found = true;
 
-                        SendMessage(await EmbedHandler.CreateBasicEmbed("Music, Playlist",
+                        await SendMessageAsync(await EmbedHandler.CreateBasicEmbed("Music, Playlist",
                                     $"**{playlistInfo.name}** is being loaded as we speak!"), context);
 
                         var player = _lavaNode.GetPlayer(context.Guild);
@@ -937,7 +937,7 @@ namespace Discord_Bot.Modules
 
                             if (search.LoadStatus.Equals(LoadStatus.LoadFailed))
                             {
-                                SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Playlist", 
+                                await SendMessageAsync(await EmbedHandler.CreateErrorEmbed("Music, Playlist",
                                     $"Failed to load [{songInfo.name}]({songInfo.url}).\n" +
                                     $"Please check if the url is working!"), context);
                                 continue;
@@ -945,7 +945,7 @@ namespace Discord_Bot.Modules
 
                             if (search.LoadStatus.Equals(LoadStatus.NoMatches))
                             {
-                                SendMessage(await EmbedHandler.CreateErrorEmbed("Music, Playlist",
+                                await SendMessageAsync(await EmbedHandler.CreateErrorEmbed("Music, Playlist",
                                     $"Failed to load {songInfo.url}.\n" +
                                     $"Please check if the url is working!"), context);
                                 continue;
@@ -1346,9 +1346,9 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region Send Message
-        private Task<Discord.Rest.RestUserMessage> SendMessage(Embed embed, SocketCommandContext context)
+        private async Task<Discord.Rest.RestUserMessage> SendMessageAsync(Embed embed, SocketCommandContext context)
         {
-            return context.Channel.SendMessageAsync(embed: embed);
+            return await context.Channel.SendMessageAsync(embed: embed);
         }
         #endregion
     }
