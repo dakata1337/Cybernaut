@@ -111,16 +111,17 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region Play
-        public async Task PlayAsync(SocketCommandContext context, string query, bool playNext = false)
+        public async Task<Embed> PlayAsync(SocketCommandContext context, string query, bool playNext = false)
         {
+            GlobalData.GuildConfigs.TryGetValue(context.Guild.Id, out GuildConfig guildConfig);
+
             var user = context.User as SocketGuildUser;
 
             Embed sameChannel = await SameChannelAsBot(context.Guild, user, "PlayAsync");
             //Checks If User is in the same Voice Channel as the bot.
             if (sameChannel != null)
             {
-                await SendMessageAsync(sameChannel, context);
-                return;
+                return sameChannel;
             }
 
             try
@@ -149,17 +150,11 @@ namespace Discord_Bot.Modules
                     #region LoadFailed/NoMatches Check
                     //If load failed, tell the user
                     if (search.LoadStatus == LoadStatus.LoadFailed)
-                    {
-                        await SendMessageAsync(await EmbedHandler.CreateErrorEmbed("Music, Play", $"Failed to load {query}.\n{search.Exception.Message}"), context);
-                        return;
-                    }
+                        return await EmbedHandler.CreateErrorEmbed("Music, Play", $"Failed to load {query}.\n{search.Exception.Message}");
 
                     //If we couldn't find anything, tell the user.
                     if (search.LoadStatus == LoadStatus.NoMatches)
-                    {
-                        await SendMessageAsync(await EmbedHandler.CreateErrorEmbed("Music, Play", $"I wasn't able to find anything for {query}."), context);
-                        return;
-                    }
+                        return await EmbedHandler.CreateErrorEmbed("Music, Play", $"I wasn't able to find anything for {query}.");
                     #endregion
 
                     track = search.Tracks.FirstOrDefault();
@@ -172,17 +167,11 @@ namespace Discord_Bot.Modules
                     #region LoadFailed/NoMatches Check
                     //If load failed, tell the user
                     if (search.LoadStatus == LoadStatus.LoadFailed)
-                    {
-                        await SendMessageAsync(await EmbedHandler.CreateErrorEmbed("Music, Play", $"Failed to load {query}.\n{search.Exception.Message}"), context);
-                        return;
-                    }
+                        return await EmbedHandler.CreateErrorEmbed("Music, Play", $"Failed to load {query}.\n{search.Exception.Message}");
 
                     //If we couldn't find anything, tell the user.
                     if (search.LoadStatus == LoadStatus.NoMatches)
-                    {
-                        await SendMessageAsync(await EmbedHandler.CreateErrorEmbed("Music, Play", $"I wasn't able to find anything for {query}."), context);
-                        return;
-                    }
+                        return await EmbedHandler.CreateErrorEmbed("Music, Play", $"I wasn't able to find anything for {query}.");
                     #endregion
 
                     #region Send available songs list
@@ -200,16 +189,24 @@ namespace Discord_Bot.Modules
 
                     #region Reply Check
 
-                    var result = await _interactivityService.NextMessageAsync(x => x.Author == context.User);
-                    string reply = result.Value.Content;
-
-                    if (!int.TryParse(reply, out int index))
+                    while (true)
                     {
-                        await SendMessageAsync(await EmbedHandler.CreateErrorEmbed("Music, Select", "The reply isn't an intiger!"), context);
-                        return;
-                    }
+                        //Wait for users reply
+                        var result = await _interactivityService.NextMessageAsync(x => x.Author == context.User);
+                        //Get reply
+                        string reply = result.Value.Content;
 
-                    track = search.Tracks[index - 1];
+                        //If the user types another command wait for another reponse
+                        if(reply.StartsWith(guildConfig.prefix))
+                            continue;
+
+                        //If the reponse isn't an intiger return
+                        if (!int.TryParse(reply, out int index))
+                            return await EmbedHandler.CreateErrorEmbed("Music, Select", "The reply isn't an intiger!");
+
+                        track = search.Tracks[index - 1];
+                        break;
+                    }
                     #endregion
 
                     #endregion
@@ -230,8 +227,7 @@ namespace Discord_Bot.Modules
                 #region Plays / Adds song to queue
                 if (playNext)
                 {
-                    await SendMessageAsync(await AddOnTopOfQueueAsync(context, track), context);
-                    return;
+                    return await AddOnTopOfQueueAsync(context, track);
                 }
                 else
                 {
@@ -240,8 +236,7 @@ namespace Discord_Bot.Modules
                     {
                         player.Queue.Enqueue(track);
                         LoggingService.Log("PlayAsync", $"\"{track.Title}\" has been added to the music queue. ({context.Guild.Id})");
-                        await SendMessageAsync(await EmbedHandler.CreateBasicEmbed("Music, Play", $"**[{track.Title}]({track.Url})** has been added to queue."), context);
-                        return;
+                        return await EmbedHandler.CreateBasicEmbed("Music, Play", $"**[{track.Title}]({track.Url})** has been added to queue.");
                     }
 
                     //Play the track
@@ -251,15 +246,14 @@ namespace Discord_Bot.Modules
                 //Log information to Console & Discord
                 LoggingService.Log("PlayAsync", $"Bot now {status}: {track.Title} ({context.Guild.Id})");
                 if (Uri.IsWellFormedUriString(track.Url, UriKind.Absolute))
-                    await SendMessageAsync(await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: [{track.Title}]({track.Url})"), context);
+                    return await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: [{track.Title}]({track.Url})");
                 else
-                    await SendMessageAsync(await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: {track.Url}"), context);
-                return;
+                    return await EmbedHandler.CreateBasicEmbed("Music, Play", $"Now {status}: {track.Url}");
                 #endregion
             }
             catch (Exception ex) //Throws the error in discord
             {
-                await SendMessageAsync(await EmbedHandler.CreateErrorEmbed("Music, Play", ex.Message), context);
+                return await EmbedHandler.CreateErrorEmbed("Music, Play", ex.Message);
             }
         }
         #endregion

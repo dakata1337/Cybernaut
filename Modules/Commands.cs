@@ -41,13 +41,13 @@ namespace Discord_Bot.Modules
         [Command("Help")]
         [Summary("Shows all commands.")]
         public async Task Help()
-            => await Context.User.SendMessageAsync(embed: await _helpModule.Help(Context, _commandService));
+            => await ReplyAsync(embed: await _helpModule.Help(Context, _commandService));
 
         [Command("About")]
         [Summary("Gives more info about a specific command.")]
         public async Task About(
             [Summary("The name of the command you want to know more about")] string command)
-            => await Context.User.SendMessageAsync(embed: await _helpModule.About(Context, _commandService, command));
+            => await ReplyAsync(embed: await _helpModule.About(Context, _commandService, command));
 
         [Command("Uptime")]
         [Summary("Shows Bot Uptime.")]
@@ -71,13 +71,13 @@ namespace Discord_Bot.Modules
         [Summary("The Bot plays a song.")]
         public async Task Play(
             [Summary("Song name/url")][Remainder] string search)
-            => await _music.PlayAsync(Context, search);
+            => await ReplyAsync(embed: await _music.PlayAsync(Context, search));
 
         [Command("Playnext")]
         [Summary("The Bot adds the song on top of the queue.")]
         public async Task PlayNext(
             [Summary("Song name/url")][Remainder] string search)
-            => await _music.PlayAsync(Context, search, playNext: true);
+            => await ReplyAsync(embed: await _music.PlayAsync(Context, search, playNext: true));
 
         [Command("Skip")]
         [Summary("The Bot skips the current song.")]
