@@ -1,4 +1,4 @@
-# Cybernaut
+# Cybernaut - *NOTE* This branch isn't mentained!
 
 > Cybernaut is a Discord bot written in C# Core.
 
