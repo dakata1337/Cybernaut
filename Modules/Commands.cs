@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Cybernaut.Modules;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -24,7 +25,8 @@ namespace Discord_Bot.Modules
         private Music _music;
         private GuildConfigHandler _guildConfigHandler;
         private HelpModule _helpModule;
-        private readonly LavaNode _lavaNode;
+        private LavaNode _lavaNode;
+        private Crypto _crypto;
 
         public Commands(IServiceProvider serviceProvider)
         {
@@ -35,6 +37,7 @@ namespace Discord_Bot.Modules
             _guildConfigHandler = serviceProvider.GetRequiredService<GuildConfigHandler>();
             _helpModule = serviceProvider.GetRequiredService<HelpModule>();
             _lavaNode = serviceProvider.GetRequiredService<LavaNode>();
+            _crypto = serviceProvider.GetRequiredService<Crypto>();
         }
 
         #region Help Commands
@@ -260,6 +263,14 @@ namespace Discord_Bot.Modules
             }
             return;
         }
+
+        #endregion
+
+        #region Crypto
+        [Command("Crypto")]
+        [Summary("To be added soon™.")]
+        public async Task Crypto(string cryptoName = null)
+            => await ReplyAsync(embed: await _crypto.GetPricesAsync(cryptoName));
 
         #endregion
 

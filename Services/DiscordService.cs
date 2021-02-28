@@ -11,6 +11,7 @@ using Discord_Bot.Handlers;
 using Discord.Commands;
 using Victoria;
 using Interactivity;
+using Cybernaut.Modules;
 
 namespace Discord_Bot
 {
@@ -22,6 +23,7 @@ namespace Discord_Bot
         private LavaNode _lavaNode;
         private GuildConfigHandler _guildConfigHandler;
         private Music _music;
+        private Crypto _crypto;
         public DiscordService()
         {
             //Initialize Logger
@@ -48,6 +50,7 @@ namespace Discord_Bot
             _lavaNode = _services.GetRequiredService<LavaNode>();
             _music = _services.GetRequiredService<Music>();
             _guildConfigHandler = _services.GetRequiredService<GuildConfigHandler>();
+            _crypto = _services.GetRequiredService<Crypto>();
         }
 
         private void SubscribeDiscordEvents()
@@ -68,6 +71,9 @@ namespace Discord_Bot
         {
             //Initialize Command Handler
             await _commandHandler.InitializeAsync();
+
+            //Initialize Crypto
+            _crypto.Initialize();
 
             //Connect Discord Client
             await ClientConnect();
@@ -114,6 +120,7 @@ namespace Discord_Bot
                 .AddSingleton<GuildConfigHandler>()
                 .AddSingleton<Music>()
                 .AddSingleton<HelpModule>()
+                .AddSingleton<Crypto>()
                 .AddSingleton<InteractivityService>()
                 .BuildServiceProvider();
         }
