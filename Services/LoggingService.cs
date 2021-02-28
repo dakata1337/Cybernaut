@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -13,9 +14,7 @@ namespace Discord_Bot.Services
 {
     class LoggingService
     {
-        private static BlockingCollection<string> sourceQueue = new BlockingCollection<string>();
-        private static BlockingCollection<string> messageQueue = new BlockingCollection<string>();
-        private static BlockingCollection<ConsoleColor> colorQueue = new BlockingCollection<ConsoleColor>();
+        private static BlockingCollection<Message> messageQueue = new BlockingCollection<Message>();
 
         public static void Initialize()
         {
@@ -27,16 +26,22 @@ namespace Discord_Bot.Services
             {
                 while (true)
                 {
-                    string src = sourceQueue.Take();
-                    string msg = messageQueue.Take();
+                    var message = messageQueue.Take();
+
+                    if(message.isDebugMessage){
+                        Debug.Write($"{DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss")} ");
+
+                        Debug.Write($"[{message.source}] {message.content}\n");
+                        continue;
+                    }
 
                     Console.Write($"{DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss")} ");
 
-                    Console.ForegroundColor = colorQueue.Take();
-                    Console.Write($"[{src}] ");
+                    Console.ForegroundColor = message.color;
+                    Console.Write($"[{message.source}] ");
                     Console.ResetColor();
 
-                    Console.Write($"{msg}\n");
+                    Console.Write($"{message.content}\n");
                 }
             });
             thread.Start();
@@ -53,9 +58,11 @@ namespace Discord_Bot.Services
         /// <param name="severity">Log severity</param>
         public static void Log(string source, string message, LogSeverity severity)
         {
-            sourceQueue.Add(source);
-            messageQueue.Add(message);
-            colorQueue.Add(GetConsoleColor(severity));
+            messageQueue.Add(new Message(){
+                source = source,
+                content = message,
+                color = GetConsoleColor(severity)
+            });
         }
 
         /// <summary>
@@ -66,12 +73,26 @@ namespace Discord_Bot.Services
         /// <param name="color">Log color</param>
         public static void Log(string source, string message, ConsoleColor? color = null)
         {
-            sourceQueue.Add(source);
-            messageQueue.Add(message);
-            colorQueue.Add((ConsoleColor)(color == null ? ConsoleColor.Cyan : color));
+            messageQueue.Add(new Message(){
+                source = source,
+                content = message,
+                color = (ConsoleColor)(color == null ? ConsoleColor.Cyan : color)
+            });
         }
         #endregion
 
+        //Debug Logger
+        #region Debug Logger
+        public static void DebugLog(string source, string message, ConsoleColor color = ConsoleColor.Cyan)
+        {
+            messageQueue.Add(new Message(){
+                source = source,
+                content = message,
+                color = color,
+                isDebugMessage = true
+            });
+        }
+        #endregion
 
         //Victoria Logger
         #region Victoria
@@ -87,10 +108,10 @@ namespace Discord_Bot.Services
                 await Task.CompletedTask;
             }
 
-            #if DEBUG
             if (message is null || message.Length == 0)
                 await Task.CompletedTask;
 
+            #if DEBUG
             //Deserialize Victoria message
             var jObj = (JObject)JsonConvert.DeserializeObject(message);
 
@@ -146,7 +167,7 @@ namespace Discord_Bot.Services
             }
 
             //Add to Logging Queue
-            Log(src, builder.ToString(), severity);
+            DebugLog(src, builder.ToString(), GetConsoleColor(severity));
             #endif
         }
 
@@ -179,5 +200,13 @@ namespace Discord_Bot.Services
                     return ConsoleColor.Cyan;
             }
         }
+    }
+
+    public class Message
+    {
+        public string source;
+        public string content;
+        public ConsoleColor color;
+        public bool isDebugMessage = false;
     }
 }
