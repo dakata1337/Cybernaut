@@ -146,8 +146,8 @@ namespace Discord_Bot.Modules
         {
             var sqlCommands = new string[]
             {
-                $"INSERT INTO Guilds VALUES('{guild.Id}')",
-                $"INSERT INTO GuildConfigurable VALUES ('{guild.Id}', '{GlobalData.Config.defaultPrefix}', '{guild.DefaultChannelId}', false, 100, null)"
+                $"INSERT INTO guilds VALUES('{guild.Id}')",
+                $"INSERT INTO guildconfigurable VALUES ('{guild.Id}', '{GlobalData.Config.defaultPrefix}', '{guild.DefaultChannelId}', false, 100, null)"
             };
             foreach (var sql in sqlCommands)
             {
@@ -165,8 +165,8 @@ namespace Discord_Bot.Modules
         {
             var sqlCommands = new string[]
             {
-                $"DELETE FROM Guilds WHERE guildId = '{guild.Id}'",
-                $"DELETE FROM GuildConfigurable WHERE guildId = '{guild.Id}'"
+                $"DELETE FROM guilds WHERE guildId = '{guild.Id}'",
+                $"DELETE FROM guildconfigurable WHERE guildId = '{guild.Id}'"
             };
 
             foreach (var sql in sqlCommands)
@@ -185,7 +185,7 @@ namespace Discord_Bot.Modules
         private GuildConfig GetGuildConfig(IGuild guild)
         {
             var guildConfig = new GuildConfig();
-            var command = $"SELECT * FROM GuildConfigurable WHERE guildId = '{guild.Id}'";
+            var command = $"SELECT * FROM guildconfigurable WHERE guildId = '{guild.Id}'";
             using (var cmd = new MySqlCommand(command, connection))
             {
                 using (var data_reader = cmd.ExecuteReader())
@@ -213,7 +213,7 @@ namespace Discord_Bot.Modules
         /// <param name="value">The new value</param>
         public void UpdateGuildConfig(IGuild guild, string whatToUpdate, string value)
         {
-            string command = $"UPDATE GuildConfigurable SET {whatToUpdate} = '{value}' WHERE guildId = '{guild.Id}'";
+            string command = $"UPDATE guildconfigurable SET {whatToUpdate} = '{value}' WHERE guildId = '{guild.Id}'";
             using(MySqlCommand cmd = new MySqlCommand(command, connection))
             {
                 cmd.ExecuteNonQuery();
@@ -227,7 +227,7 @@ namespace Discord_Bot.Modules
         /// <returns>Boolen (true or false)</returns>
         public bool GuildHasConfig(IGuild guild)
         {
-            var command = $"SELECT EXISTS(SELECT * FROM GuildConfigurable WHERE guildId = '{guild.Id}')";
+            var command = $"SELECT EXISTS(SELECT * FROM guildconfigurable WHERE guildId = '{guild.Id}')";
             using (var cmd = new MySqlCommand(command, connection))
             {
                 using (var data_reader = cmd.ExecuteReader())
