@@ -17,10 +17,6 @@ namespace Cybernaut.Modules
 {
     public class Crypto
     {
-        public Crypto(IServiceProvider serviceProvider)
-        {
-
-        }
         public Dictionary<string, JObject> cryptocurrencies = new Dictionary<string, JObject>();
         public void Initialize()
         {
