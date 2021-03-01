@@ -297,9 +297,7 @@ namespace Discord_Bot.Modules
             var user = context.User as SocketGuildUser;
             Embed sameChannel = await SameChannelAsBot(context.Guild, user, "SkipTrackAsync");
             if (sameChannel != null)
-            {
                 return sameChannel;
-            }
 
             try
             {
@@ -348,9 +346,7 @@ namespace Discord_Bot.Modules
             //Checks If User is in the same Voice Channel as the bot.
             Embed sameChannel = await SameChannelAsBot(context.Guild, user, "StopAsync");
             if (sameChannel != null)
-            {
                 return sameChannel;
-            }
 
             try
             {
@@ -396,9 +392,7 @@ namespace Discord_Bot.Modules
             var user = context.User as SocketGuildUser;
             Embed sameChannel = await SameChannelAsBot(context.Guild, user, "PauseAsync");
             if (sameChannel != null)
-            {
                 return sameChannel;
-            }
 
             try
             {
@@ -434,9 +428,7 @@ namespace Discord_Bot.Modules
             var user = context.User as SocketGuildUser;
             Embed sameChannel = await SameChannelAsBot(context.Guild, user, "ResumeAsync");
             if (sameChannel != null)
-            {
                 return sameChannel;
-            }
 
             try
             {
@@ -473,9 +465,7 @@ namespace Discord_Bot.Modules
             var user = context.User as SocketGuildUser;
             Embed sameChannel = await SameChannelAsBot(context.Guild, user, "ListAsync");
             if (sameChannel != null)
-            {
                 return sameChannel;
-            }
 
             try
             {
@@ -573,9 +563,7 @@ namespace Discord_Bot.Modules
             var user = context.User as SocketGuildUser;
             Embed sameChannel = await SameChannelAsBot(context.Guild, user, "SetVolumeAsync");
             if (sameChannel != null)
-            {
                 return sameChannel;
-            }
 
             //Get Guild Config
             GlobalData.GuildConfigs.TryGetValue(context.Guild.Id, out GuildConfig config);
@@ -633,9 +621,7 @@ namespace Discord_Bot.Modules
             //Checks If User is in the same Voice Channel as the bot.
             Embed sameChannel = await SameChannelAsBot(context.Guild, user, "LoopAsync");
             if (sameChannel != null)
-            {
                 return sameChannel;
-            }
 
             //Change isLooping to opposite value
             bool isLooping = !config.isLooping;
@@ -654,9 +640,7 @@ namespace Discord_Bot.Modules
         {
             Embed sameChannel = await SameChannelAsBot(context.Guild, context.User as SocketGuildUser, "SeekAsync");
             if (sameChannel != null)
-            {
                 return sameChannel;
-            }
 
             var player = _lavaNode.GetPlayer(context.Guild);
 
