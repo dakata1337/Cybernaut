@@ -66,18 +66,10 @@ namespace Discord_Bot.Handlers
             if (message.Content == guildConfig.prefix)
                 return Task.CompletedTask;
 
-            //Get whitelisted channel
-            List<ulong> whitelistedChannels = guildConfig.whitelistedChannels;
-            var whitelistedChannelCheck = from a in whitelistedChannels
-                                          where a == context.Channel.Id
-                                          select a;
-
-            //Get whitelisted channel
-            ulong whitelistedChannel = whitelistedChannelCheck.FirstOrDefault();
 
             //If Context Channel is Whitelisted - Execute
-            if (whitelistedChannel == context.Channel.Id)
-                return _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
+            if (guildConfig.whitelistedChannels.Contains(context.Channel.Id))
+                return (Task)await _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
 
             return Task.CompletedTask;
         }
@@ -97,7 +89,7 @@ namespace Discord_Bot.Handlers
                 await context.Channel.SendMessageAsync(embed: await EmbedHandler.CreateErrorEmbed("Error.", result.ErrorReason));
             }
         }
-
+        
 
         public async Task InitializeAsync()
         {
