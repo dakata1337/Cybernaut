@@ -76,9 +76,7 @@ namespace Discord_Bot.Modules
             var user = context.User as SocketGuildUser;
             Embed sameChannel = await SameChannelAsBot(context.Guild, user, "LeaveAsync");
             if (sameChannel != null) //Checks If User is in the same Voice Channel as the bot.
-            {
                 return sameChannel;
-            }
 
             try
             {
@@ -120,9 +118,7 @@ namespace Discord_Bot.Modules
             Embed sameChannel = await SameChannelAsBot(context.Guild, user, "PlayAsync");
             //Checks If User is in the same Voice Channel as the bot.
             if (sameChannel != null)
-            {
                 return sameChannel;
-            }
 
             try
             {
@@ -672,16 +668,16 @@ namespace Discord_Bot.Modules
 
             TimeSpan ts = new TimeSpan();
             if (count == 1)
-                ts = DateTime.ParseExact(seekTo, "mm\\:ss", CultureInfo.InvariantCulture).TimeOfDay;
+                ts = DateTime.ParseExact(seekTo, "m\\:ss", CultureInfo.InvariantCulture).TimeOfDay;
             else if (count == 2)
-                ts = DateTime.ParseExact(seekTo, "HH\\:mm\\:ss", CultureInfo.InvariantCulture).TimeOfDay;
+                ts = DateTime.ParseExact(seekTo, "H\\:mm\\:ss", CultureInfo.InvariantCulture).TimeOfDay;
             else
                 return await EmbedHandler.CreateErrorEmbed("Music, Seek", $"**Unsupported time format**");
 
 
             var duration = player.Track.Duration;
             if (ts.TotalSeconds > duration.TotalSeconds)
-                return await EmbedHandler.CreateErrorEmbed("Music, Seek", $"**Value must be no bigger than {duration.ToString(@"hh\:mm\:ss")}!**");
+                return await EmbedHandler.CreateErrorEmbed("Music, Seek", $"**Value mustn't be bigger than {duration.ToString(@"hh\:mm\:ss")}!**");
 
             var savedTrack = player.Track;
             await player.SeekAsync(ts);
@@ -698,9 +694,7 @@ namespace Discord_Bot.Modules
             //Checks If User is in the same Voice Channel as the bot.
             Embed sameChannel = await SameChannelAsBot(context.Guild, (SocketGuildUser)context.Message.Author, "GetLyricsAsync");
             if (sameChannel != null)
-            {
                 return sameChannel;
-            }
 
             //Get Guild Player
             var player = _lavaNode.GetPlayer(context.Guild);
@@ -874,9 +868,7 @@ namespace Discord_Bot.Modules
             //Checks If User is in the same Voice Channel as the bot.
             Embed sameChannel = await SameChannelAsBot(context.Guild, user, "PlayAsync");
             if (sameChannel != null)
-            {
                 return sameChannel;
-            }
             #endregion
 
             #region Selected Playlist Check
@@ -1259,9 +1251,7 @@ namespace Discord_Bot.Modules
 
             Embed sameChannel = await SameChannelAsBot(context.Guild, user, "PlayAsync");
             if (sameChannel != null) //Checks If User is in the same Voice Channel as the bot.
-            {
                 return sameChannel;
-            }
 
             //Get Guild Player 
             _lavaNode.TryGetPlayer(context.Guild, out LavaPlayer player);

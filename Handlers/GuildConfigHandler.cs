@@ -46,11 +46,47 @@ namespace Discord_Bot.Handlers
                 //Custom Embed
                 var fields = new List<EmbedFieldBuilder>();
 
+                //All Discord Formatting characters
+                string[] formatStrings = new string[] {
+                    //Italics
+                    "_",
+                    //Underline
+                    "__",
+                    //Bold
+                    "**",
+                    //Strikethrough
+                    "~~",
+
+                    //Underline Italics
+                    "__*",
+                    "*__",
+                    //Underline Bold
+                    "__**",
+                    "**__",
+                    //Underline Bold Italics
+                    "__***",
+                    "***__", 
+                    //Bold Italics
+                    "***",
+
+                    //Code Blocks
+                    "'",
+                    "``",
+                    "```",
+
+                    //Quotes
+                    ">",
+                    ">>>"
+                };
+
+                //If the default prefix is on the list above - add '\' infront of the prefix
+                string prefix = $"{(formatStrings.Contains(GlobalData.Config.defaultPrefix) ? "\\" : "")}{GlobalData.Config.defaultPrefix}";
+
                 fields.Add(new EmbedFieldBuilder{
                     Name = "**How to use**",
-                    Value = $"**My current prefix is \"{GlobalData.Config.defaultPrefix}\".\n"+
-                    $"If you want to change it you can {GlobalData.Config.defaultPrefix}prefix YourPrefix.\n"+
-                    $"To see all commands type {GlobalData.Config.defaultPrefix}help.",
+                    Value = $"**My current prefix is \"{prefix}\".**\n"+
+                    $"If you want to change it you can {prefix}prefix YourPrefix.\n"+
+                    $"To see all commands type {prefix}help.",
                     IsInline = false
                 });
 
@@ -58,7 +94,7 @@ namespace Discord_Bot.Handlers
                 {
                     Name = "**Please Note**",
                     Value = $"By default, {defaultChannel.Mention} is the default bot channel.\n" +
-                    $"If you want to change it, type {GlobalData.Config.defaultPrefix}whitelist add #YourTextChannel",
+                    $"If you want to change it, type {prefix}whitelist add #YourTextChannel",
                     IsInline = false
                 });
 
