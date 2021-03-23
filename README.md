@@ -1,5 +1,5 @@
 # Cybernaut-v2.1
-> Cybernaut is a simple Discord Bot.
+> Cybernaut is a simple Discord Bot.<br/>
 > Note: Cybernaut-v2.1 is a rework of v2
 
 
