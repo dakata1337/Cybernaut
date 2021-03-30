@@ -67,13 +67,13 @@ namespace Discord_Bot.Modules
                 {
                     try
                     {
-                        if (GuildConfigFunctions.GuildHasConfig(guild, connection))
+                        if (GuildConfigHandler.GuildHasConfig(guild))
                         {
-                            Configs.Add(guild.Id, GuildConfigFunctions.GetGuildConfig(guild, connection));
+                            Configs.Add(guild.Id, GuildConfigHandler.GetGuildConfig(guild));
                         }
                         else
                         {
-                            GuildConfigFunctions.CreateGuildConfig(guild, connection);
+                            GuildConfigHandler.CreateGuildConfig(guild);
 
                             List<EmbedFieldBuilder> fields = new List<EmbedFieldBuilder>();
                             fields.Add(new EmbedFieldBuilder
@@ -111,8 +111,8 @@ namespace Discord_Bot.Modules
                     }
                 }
 
-                //LoggingService.Log("UGC", $"Updated all guild configs ({Configs.Count})");
-                _commandHandler.GuildConfigs = Configs;
+                // LoggingService.Log("UGC", $"Updated all guild configs ({Configs.Count})");
+                GlobalData.GuildConfigs = Configs;
 
                 Thread.Sleep(GlobalData.Config.cacheUpdateTime);
             }

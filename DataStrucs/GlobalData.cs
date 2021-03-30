@@ -14,6 +14,7 @@ namespace Discord_Bot.DataStrucs
         private static string configName = "config.json";
         private static string configPath { get; set; } = $"{configName}";
         public static BotConfig Config { get; set; }
+        public static Dictionary<ulong, GuildConfig> GuildConfigs = new Dictionary<ulong, GuildConfig>();
 
         public static void Initialize()
         {

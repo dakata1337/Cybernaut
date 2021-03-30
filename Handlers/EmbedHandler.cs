@@ -14,7 +14,7 @@ namespace Discord_Bot.Handlers
         /// </summary>
         public static async Task<Embed> CreateBasicEmbed(string title, string description, string? imageUrl = null, Color? color = null)
         {
-            //Here you can specifie your default embed color
+            // Here you can specifie your default embed color
             Color defaultColor = Color.DarkTeal;
 
             var embed = new EmbedBuilder()
@@ -33,7 +33,7 @@ namespace Discord_Bot.Handlers
         /// </summary>
         public static async Task<Embed> CreateErrorEmbed(string title, string description, string? imageUrl = null)
         {
-            //Here you can specifie your Default Error Embed color
+            // Here you can specifie your Default Error Embed color
             Color defaultColor = Color.Red;
 
             var embed = new EmbedBuilder()

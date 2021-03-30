@@ -18,7 +18,6 @@ namespace Discord_Bot.Handlers
         private readonly DiscordSocketClient _client;
         private readonly CommandService _commands;
         private readonly IServiceProvider _services;
-        public Dictionary<ulong, GuildConfig> GuildConfigs= new Dictionary<ulong, GuildConfig>();
 
         public CommandHandler(IServiceProvider services)
         {
@@ -37,11 +36,11 @@ namespace Discord_Bot.Handlers
 
         private async Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)
         {
-            //If Execution was successfull - return
+            // If Execution was successfull - return
             if (result.IsSuccess)
                 return;
 
-            //If an Error Occurs send to Discord
+            // If an Error Occurs send to Discord
             if (!command.IsSpecified || !result.IsSuccess)
             {
                 #if DEBUG
@@ -53,37 +52,37 @@ namespace Discord_Bot.Handlers
 
         private async Task<Task> HandleCommandAsync(SocketMessage socketMessage)
         {
-            //If the message lenght is 0 - return
+            // If the message lenght is 0 - return
             if (socketMessage.Content.Length == 0)
                 return Task.CompletedTask;
 
             var argPos = 0;
             var context = new SocketCommandContext(_client, socketMessage as SocketUserMessage);
 
-            //If the Message context is DM - return
+            // If the Message context is DM - return
             if (socketMessage.Channel is IDMChannel)
                 return Task.CompletedTask;
 
-            //If the message is from Bot/Webhook - return
+            // If the message is from Bot/Webhook - return
             if (!(socketMessage is SocketUserMessage message) || message.Author.IsBot || message.Author.IsWebhook)
                 return Task.CompletedTask;
 
-            //Get Guild Config
-            GuildConfigs.TryGetValue(context.Guild.Id, out GuildConfig guildConfig);
+            // Get Guild Config
+            GlobalData.GuildConfigs.TryGetValue(context.Guild.Id, out GuildConfig guildConfig);
 
-            //If Guild Config is Null - return
+            // If Guild Config is Null - return
             if(guildConfig is null)
                 return Task.CompletedTask;
 
-            //If the message doesnt have prefix - return
+            // If the message doesnt have prefix - return
             if (!message.HasStringPrefix(guildConfig.prefix, ref argPos))
                 return Task.CompletedTask;
 
-            //If the message is only the prefix - return
+            // If the message is only the prefix - return
             if (message.Content == guildConfig.prefix)
                 return Task.CompletedTask;
 
-            //If Context Channel is Whitelisted - Execute
+            // If Context Channel is Whitelisted - Execute
             if (guildConfig.whitelistedChannels.Contains(context.Channel.Id))
                 return _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
 

@@ -9,6 +9,8 @@ using Discord_Bot.DataStrucs;
 using Discord_Bot.Services;
 using Discord_Bot.Handlers;
 using Discord.Commands;
+using Victoria;
+using Interactivity;
 
 namespace Discord_Bot
 {
@@ -19,19 +21,25 @@ namespace Discord_Bot
         private CommandHandler _commandHandler;
         private MySQL _mySQL;
         private GuildConfigHandler _guildConfigHandler;
+        private LavaNode _lavaNode;
+        private Music _music;
+        private CryptoModule _cryptoModule;
         public DiscordService()
         {
-            //Initialize Logger
+            // Initialize Logger
             LoggingService.Initialize();
 
-            //Initialize Config
+            // Initialize Config
             GlobalData.Initialize();
 
-            //Initialize Services
+            // Initialize Services
             InitializeServices();
 
-            //Subscribe to Discord Events
+            // Subscribe to Discord Events
             SubscribeDiscordEvents();
+
+            // Subscribe to Victoria Events
+            SubscribeVictoriaEvents();
         }
 
         private void InitializeServices()
@@ -41,6 +49,9 @@ namespace Discord_Bot
             _commandHandler = _services.GetRequiredService<CommandHandler>();
             _mySQL = _services.GetRequiredService<MySQL>();
             _guildConfigHandler = _services.GetRequiredService<GuildConfigHandler>();
+            _lavaNode = _services.GetRequiredService<LavaNode>();
+            _music = _services.GetRequiredService<Music>();
+            _cryptoModule = _services.GetRequiredService<CryptoModule>();
         }
 
         private void SubscribeDiscordEvents()
@@ -51,32 +62,53 @@ namespace Discord_Bot
             _client.LeftGuild += _guildConfigHandler.LeftGuild;
         }
 
+        private void SubscribeVictoriaEvents()
+        {
+            _lavaNode.OnLog += Victoria_Log;
+            _lavaNode.OnTrackEnded += _music.TrackEndedAsync;
+        }
+
+        private Task Victoria_Log(LogMessage arg)
+        {
+            LoggingService.Log(arg.Source, arg.Message, arg.Severity);
+            return Task.CompletedTask;
+        }
+
         public async Task InitializeAsync()
         {
-            //Initialize Command Handler
+            // Initialize Command Handler
             await _commandHandler.InitializeAsync();
 
-            //Connect Discord Client
+            // Initialize Crypto Module
+            await _cryptoModule.Initialize();
+
+            // Connect Discord Client
             await ClientConnect();
 
-            //Halt Startup Thread
+            // Halt Startup Thread
             await Task.Delay(-1);
         }
 
         private async Task ClientConnect()
         {
-            //Login Bot with Token
+            // Login Bot with Token
             await _client.LoginAsync(TokenType.Bot, GlobalData.Config.token);
 
-            //Start connection between Discord and Bot
+            // Start connection between Discord and Bot
             await _client.StartAsync();
         }
 
-        //Change Currently Playing Game 
+        // Change Currently Playing Game 
         private async Task OnClientReady()
-            => await _client.SetGameAsync(GlobalData.Config.gameStatus);
+        {
+            // Change Game
+            await _client.SetGameAsync(GlobalData.Config.gameStatus);
 
-        //Log Discord.Net messages
+            // Connect To Lavalink
+            await _lavaNode.ConnectAsync();
+        }
+
+        // Log Discord.Net messages
         private async Task Client_Log(LogMessage arg)
             => await LoggingService.Log(arg.Source, $"{arg.Message}", arg.Severity);
         
@@ -90,6 +122,11 @@ namespace Discord_Bot
                 .AddSingleton<Commands>()
                 .AddSingleton<MySQL>()
                 .AddSingleton<GuildConfigHandler>()
+                .AddSingleton<LavaNode>()
+                .AddSingleton(new LavaConfig() { LogSeverity = LogSeverity.Info })
+                .AddSingleton<Music>()
+                .AddSingleton<InteractivityService>()
+                .AddSingleton<CryptoModule>()
                 .BuildServiceProvider();
         }
     }

@@ -13,5 +13,4 @@
 * [MySQL (Version - 8.0.23)](https://dev.mysql.com/doc/) - MySQL Library
 
 ## To Do
-* Music/Victoria not implemented yet
 * Comment all code

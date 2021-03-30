@@ -33,4 +33,10 @@ namespace Discord_Bot.DataStrucs
         public string Source { get; set; }
         public ConsoleColor ConsoleColor { get; set; }
     }
+
+    public class Crypto
+    {
+        public string cryptoName;
+        public double price;
+    }
 }
