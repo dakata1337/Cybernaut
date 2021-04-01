@@ -71,7 +71,6 @@ namespace Discord_Bot.Modules
                             JObject json = JsonConvert.DeserializeObject<JObject>(reader.ReadToEnd());
 
                             // More info about Events in the documentation: https://www.bitstamp.net/websocket/v2/
-
                             if (json["event"].ToString() == "bts:subscription_succeeded")
                             {
                                 await LoggingService.Log(threadName, $"Subscribed to {json["channel"]}");
@@ -121,24 +120,36 @@ namespace Discord_Bot.Modules
 
         public async Task<Embed> GetPriceAsync(string cryptoName = null)
         {
+            // Get Instance of cryptoCurrencies
+            // (so it doesn't change while we run this function)
             var currentCrypto = cryptoCurrencies;
+            // If no Crypto info is found
             if (currentCrypto.Count == 0)
                 return await EmbedHandler.CreateErrorEmbed("Crypto, Information", $"We are waiting for the information. Please try again later!");
 
+            // Create StringBuilder
             StringBuilder sb = new StringBuilder();
             sb.Append("**Here is what we found:**\n==================\n");
+
+            // Count of currencies we found
             int count = 0;
             foreach (var crypto in currentCrypto)
             {
+                // Get Crypto Data
                 var cryptoData = crypto.Value;
+
+                // If Crypto name is specified and it doesn't match - continue
                 if (cryptoName != null && cryptoName.ToLower() != cryptoData.cryptoName.ToLower())
                     continue;
 
+                // Give Crypto name/price
                 sb.Append($"{crypto.Value.cryptoName.ToUpper()}: ${crypto.Value.price}\n");
+                // Increment crypto count
                 count++;
             }
             sb.Append($"==================\nHaven't seen the coin you are looking for? Please contact the developers to add it.");
 
+            // If no currencies were found
             if(count == 0)
                 return await EmbedHandler.CreateErrorEmbed("Crypto, Information", $"Nothing was found!");
 

@@ -193,6 +193,12 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region AddOnTopOfQueueAsync
+        /// <summary>
+        /// Adds song on top of the queue
+        /// </summary>
+        /// <param name="context">Command context</param>
+        /// <param name="track">The track itself</param>
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> AddOnTopOfQueueAsync(SocketCommandContext context, LavaTrack track)
         {
             string embedTitle = "Music, Play";
@@ -231,6 +237,11 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region SkipTrackAsync
+        /// <summary>
+        /// Skip to the next track
+        /// </summary>
+        /// <param name="context">Command Context</param>
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> SkipTrackAsync(SocketCommandContext context)
         {
             string embedTitle = "Music, Skip";
@@ -260,6 +271,12 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region StopAsync
+        /// <summary>
+        /// Stop all tracks and clear queue
+        /// </summary>
+        /// <param name="context">Command Context</param>
+        /// <param name="embedTitle"></param>
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> StopAsync(SocketCommandContext context, string embedTitle = "Music, Stop")
         {
             var checkResult = MusicChecks(context, embedTitle).Result;
@@ -281,6 +298,11 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region PauseAsync
+        /// <summary>
+        /// Pauses track playback
+        /// </summary>
+        /// <param name="context">Command Context</param>
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> PauseAsync(SocketCommandContext context)
         {
             string embedTitle = "Music, Pause";
@@ -305,6 +327,11 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region ResumeAsync
+        /// <summary>
+        /// Resumes track playback
+        /// </summary>
+        /// <param name="context">Command Context</param>
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> ResumeAsync(SocketCommandContext context)
         {
             string embedTitle = "Music, Resume";
@@ -329,6 +356,11 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region GetQueueAsync
+        /// <summary>
+        /// Display all songs in queue
+        /// </summary>
+        /// <param name="context">Command Context</param>
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> GetQueueAsync(SocketCommandContext context)
         {
             string embedTitle = "Music, Queue";
@@ -406,6 +438,12 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region SetVolumeAsync
+        /// <summary>
+        /// Sets Bot volume
+        /// </summary>
+        /// <param name="context">Command context</param>
+        /// <param name="volume">Music volume</param>
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> SetVolumeAsync(SocketCommandContext context, int? volume = null)
         {
             string embedTitle = "Music, Volume";
@@ -440,6 +478,12 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region LoopAsync
+        /// <summary>
+        /// Enables track looping
+        /// </summary>
+        /// <param name="context">Command Context</param>
+        /// <param name="arg">Custom args</param>
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> LoopAsync(SocketCommandContext context, string arg)
         {
             string embedTitle = "Music, Loop";
@@ -463,6 +507,12 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region SeekAsync
+        /// <summary>
+        /// Seek track
+        /// </summary>
+        /// <param name="context">Command Context</param>
+        /// <param name="seekTo"></param>
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> SeekAsync(SocketCommandContext context, string seekTo)
         {
             string embedTitle = "Music, Seek";
@@ -506,6 +556,11 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region TrackEndedAsync
+        /// <summary>
+        /// Play next song on TrackEnded
+        /// </summary>
+        /// <param name="args">TrackEndedEventArgs</param>
+        /// <returns>Discord.Embed</returns>
         public async Task TrackEndedAsync(TrackEndedEventArgs args)
         {
             string embedTitle = "Music, Next Song";

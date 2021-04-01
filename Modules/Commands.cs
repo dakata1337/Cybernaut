@@ -161,7 +161,9 @@ namespace Discord_Bot.Modules
         [Alias("s")]
         public async Task Seek(string seekTo) =>
             await ReplyAsync(embed: await _music.SeekAsync(Context, seekTo));
+        #endregion
 
+        #region Cryptocurrency Commands
         [Command("Crypto")]
         [Alias("c")]
         public async Task Crypto(string cryptoName = null) =>

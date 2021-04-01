@@ -245,11 +245,13 @@ namespace Discord_Bot.Handlers
         #region Create Guild Config
         public static void CreateGuildConfig(IGuild guild)
         {
+            // Array of commands to send
             var sqlCommands = new string[]
             {
                 $"INSERT INTO Guilds VALUES('{guild.Id}')",
                 $"INSERT INTO GuildConfigurable VALUES ('{guild.Id}', '{GlobalData.Config.defaultPrefix}', '{guild.DefaultChannelId}')"
             };
+            // Send SQL query
             foreach (var sql in sqlCommands)
             {
                 using (var cmd = new MySqlCommand(sql, _connection))
@@ -263,12 +265,13 @@ namespace Discord_Bot.Handlers
         #region Remove Guild Config
         public static void RemoveGuildConfig(IGuild guild)
         {
+            // Array of commands to send
             var sqlCommands = new string[]
             {
                 $"DELETE FROM Guilds WHERE guildID = '{guild.Id}'",
                 $"DELETE FROM GuildConfigurable WHERE guildID = '{guild.Id}'"
             };
-
+            // Send SQL query
             foreach (var sql in sqlCommands)
             {
                 using (var cmd = new MySqlCommand(sql, _connection))
@@ -284,8 +287,10 @@ namespace Discord_Bot.Handlers
         {
             var guildConfig = new GuildConfig();
             var command = $"SELECT * FROM GuildConfigurable WHERE guildID = '{guild.Id}'";
+            // Send SQL query
             using (var cmd = new MySqlCommand(command, _connection))
             {
+                // Read SQL query response
                 using (var data_reader = cmd.ExecuteReader())
                 {
                     while (data_reader.Read())
@@ -310,6 +315,7 @@ namespace Discord_Bot.Handlers
                     }
                 }
             }
+            // Return Config
             return guildConfig;
         }
         #endregion
@@ -318,8 +324,11 @@ namespace Discord_Bot.Handlers
         public static void UpdateGuildConfig(IGuild guild, string whatToUpdate, string value)
         {
             string command = $"UPDATE GuildConfigurable SET {whatToUpdate} = '{value}' WHERE guildID = '{guild.Id}'";
-            MySqlCommand cmd = new MySqlCommand(command, _connection);
-            cmd.ExecuteNonQuery();
+            // Send SQL query
+            using (var cmd = new MySqlCommand(command, _connection))
+            {
+                cmd.ExecuteNonQuery();
+            }
         }
         #endregion
 
@@ -327,12 +336,15 @@ namespace Discord_Bot.Handlers
         public static bool GuildHasConfig(IGuild guild)
         {
             var command = $"SELECT EXISTS(SELECT * FROM GuildConfigurable WHERE guildID = '{guild.Id}')";
+            // Send SQL query
             using (var cmd = new MySqlCommand(command, _connection))
             {
+                // Read SQL query response
                 using (var data_reader = cmd.ExecuteReader())
                 {
                     while (data_reader.Read())
                     {
+                        // If recieved date is "1" return true
                         if (data_reader.GetValue(0).ToString() == "1")
                             return true;
                     }

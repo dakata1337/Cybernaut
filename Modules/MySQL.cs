@@ -32,6 +32,7 @@ namespace Discord_Bot.Modules
             var config = GlobalData.Config;     
             try
             {
+                // Get MySQL Connection String
                 var connStr = new MySqlConnectionStringBuilder()
                 {
                     Server = config.DB_Server,
@@ -41,9 +42,12 @@ namespace Discord_Bot.Modules
                     Database = config.DB_Database
                 };
 
+                // Create Connection 
                 connection = new MySqlConnection(connStr.GetConnectionString(true));
+                // Open Connection
                 connection.Open();
 
+                // Start Guild Cache Update thread
                 Thread guildConfigUpdate = new Thread(new ThreadStart(UpdateGuildConfigCache));
                 guildConfigUpdate.Start();
 
@@ -62,19 +66,24 @@ namespace Discord_Bot.Modules
         {
             while (true)
             {
+                // Create Dictionary with GuildConfig
                 Dictionary<ulong, GuildConfig> Configs = new Dictionary<ulong, GuildConfig>();
                 foreach (var guild in _client.Guilds)
                 {
                     try
                     {
+                        // If the guild has a config
                         if (GuildConfigHandler.GuildHasConfig(guild))
                         {
+                            // Add Config to Dictionary
                             Configs.Add(guild.Id, GuildConfigHandler.GetGuildConfig(guild));
                         }
                         else
                         {
+                            // Create Guild Config
                             GuildConfigHandler.CreateGuildConfig(guild);
 
+                            // Create Embed
                             List<EmbedFieldBuilder> fields = new List<EmbedFieldBuilder>();
                             fields.Add(new EmbedFieldBuilder
                             {
@@ -92,6 +101,7 @@ namespace Discord_Bot.Modules
                                 IsInline = false
                             });
 
+                            // Send Embed
                             Task.Run(async () =>
                             {
                                 await guild.DefaultChannel.SendMessageAsync(embed: await EmbedHandler.CreateCustomEmbed(
@@ -112,6 +122,7 @@ namespace Discord_Bot.Modules
                 }
 
                 // LoggingService.Log("UGC", $"Updated all guild configs ({Configs.Count})");
+                // Update Global Guild config Cache
                 GlobalData.GuildConfigs = Configs;
 
                 Thread.Sleep(GlobalData.Config.cacheUpdateTime);
