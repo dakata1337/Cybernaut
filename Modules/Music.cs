@@ -521,44 +521,30 @@ namespace Discord_Bot.Modules
         public async Task<Embed> PlaylistAsync(SocketCommandContext context, string command, string playlistName, string modifier, string query)
         {
             string embedTitle = "Music, Playlist";
-
             var checkResult = MusicChecks(context, embedTitle).Result;
             if (checkResult != null)
                 return checkResult;
 
+            // Check if playlist name contains illegal characters
             if (!Regex.IsMatch(playlistName != null ? playlistName : "null", @"^[a-zA-Z0-9_]+$"))
                 return await EmbedHandler.CreateErrorEmbed(embedTitle, "Playlist name contains illegal characters!");
 
-            command = command.ToLower();
-
-            if (command == "load")
+            switch (command.ToLower())
             {
-                return await LoadPlaylistAsync(context, playlistName, embedTitle);
-            }
-            else if (command == "show")
-            {
-                return await ShowPlaylistsAsync(context, playlistName, embedTitle);
-            }
-            else if (command == "modify")
-            {
-                if (modifier.ToLower() == "add")
-                    return await AddPlaylistTrack(context, playlistName, query, embedTitle);
-                else if (modifier.ToLower() == "remove")
-                    return await RemovePlaylistTrack(context, playlistName, query, embedTitle);
-                else
-                    return await EmbedHandler.CreateErrorEmbed(embedTitle, $"{modifier} isn't a valid argument!");
-            }
-            else if (command == "create")
-            {
-                return await CreatePlaylistAsync(context, playlistName, embedTitle);
-            }
-            else if (command == "remove")
-            {
-                return await RemovePlaylistAsync(context, playlistName, embedTitle);
-            }
-            else
-            {
-                return await EmbedHandler.CreateErrorEmbed(embedTitle, $"{command} is not a valid argument!");
+                case "load":
+                    return await LoadPlaylistAsync(context, playlistName, embedTitle);
+                case "show":
+                    return await ShowPlaylistsAsync(context, playlistName, embedTitle);
+                case "modify":
+                    if (modifier.ToLower() == "add") return await AddPlaylistTrack(context, playlistName, query, embedTitle);
+                    else if (modifier.ToLower() == "remove") return await RemovePlaylistTrack(context, playlistName, query, embedTitle);
+                    else return await EmbedHandler.CreateErrorEmbed(embedTitle, $"{modifier} isn't a valid argument!");
+                case "create":
+                    return await CreatePlaylistAsync(context, playlistName, embedTitle);
+                case "remove":
+                    return await RemovePlaylistAsync(context, playlistName, embedTitle);
+                default:
+                    return await EmbedHandler.CreateErrorEmbed(embedTitle, $"{command} is not a valid argument!");
             }
         }
         #endregion
