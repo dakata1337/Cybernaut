@@ -8,6 +8,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -24,92 +25,101 @@ namespace Discord_Bot.Modules
             {
                 // Get thread name for logging
                 string threadName = Thread.CurrentThread.Name;
-
-                // Create CWS
-                ClientWebSocket ws = new ClientWebSocket();
-
-                // Get URI
-                Uri uri = new Uri("wss://ws.bitstamp.net", UriKind.Absolute);
-
-                // Connect to WS
-                await ws.ConnectAsync(uri, new CancellationToken());
-
-                // Currencies to which we want to subscribe | More info in the documentation: https://www.bitstamp.net/websocket/v2/
-                string[] currencies = new string[] { "btcusd", "ethusd" };
-
-                foreach (var currency in currencies)
+                while (true)
                 {
-                    // Encode with UTF8
-                    var encoded = Encoding.UTF8.GetBytes("{\"event\": \"bts:subscribe\",\"data\": {\"channel\": \"live_trades_" + currency + "\"}}");
-
-                    // Send WS Message
-                    await ws.SendAsync(new ArraySegment<byte>(encoded, 0, encoded.Length), WebSocketMessageType.Text, true, new CancellationToken());
-                }
-
-                // Start waiting for replies
-                while(true)
-                {
-                    ArraySegment<Byte> buffer = new ArraySegment<byte>(new byte[8192]);
-                    WebSocketReceiveResult result = null;
-                    using (var ms = new MemoryStream())
+                    try
                     {
-                        do
-                        {
-                            // Receive replie
-                            result = await ws.ReceiveAsync(buffer, CancellationToken.None);
+                        // Create CWS
+                        ClientWebSocket ws = new ClientWebSocket();
 
-                            // Save to Memory Stream
-                            ms.Write(buffer.Array, buffer.Offset, buffer.Count);
+                        // Get URI
+                        Uri uri = new Uri("wss://ws.bitstamp.net", UriKind.Absolute);
+
+                        // Connect to WS
+                        await ws.ConnectAsync(uri, new CancellationToken());
+
+                        // Currencies to which we want to subscribe | More info in the documentation: https://www.bitstamp.net/websocket/v2/
+                        string[] currencies = new string[] { "btcusd", "ethusd" };
+
+                        foreach (var currency in currencies)
+                        {
+                            // Encode with UTF8
+                            var encoded = Encoding.UTF8.GetBytes("{\"event\": \"bts:subscribe\",\"data\": {\"channel\": \"live_trades_" + currency + "\"}}");
+
+                            // Send WS Message
+                            await ws.SendAsync(new ArraySegment<byte>(encoded, 0, encoded.Length), WebSocketMessageType.Text, true, new CancellationToken());
                         }
-                        while (!result.EndOfMessage);
 
-                        // Set index 0 as MS position
-                        ms.Seek(0, SeekOrigin.Begin);
-                        using(var reader = new StreamReader(ms, Encoding.UTF8))
+                        // Start waiting for replies
+                        while (true)
                         {
-                            // Parse data to JObject
-                            JObject json = JsonConvert.DeserializeObject<JObject>(reader.ReadToEnd());
-
-                            // More info about Events in the documentation: https://www.bitstamp.net/websocket/v2/
-                            if (json["event"].ToString() == "bts:subscription_succeeded")
+                            ArraySegment<Byte> buffer = new ArraySegment<byte>(new byte[8192]);
+                            WebSocketReceiveResult result = null;
+                            using (var ms = new MemoryStream())
                             {
-                                await LoggingService.Log(threadName, $"Subscribed to {json["channel"]}");
-                            }
-                            else if(json["event"].ToString() == "bts:request_reconnect") 
-                            {
-                                await LoggingService.Log(threadName, "Reconnect requested");
-
-                                // Close WS Connection
-                                await ws.CloseAsync(new WebSocketCloseStatus(), "", new CancellationToken());
-
-                                // Wait 5s
-                                Thread.Sleep(5000);
-
-                                // Connect to WS
-                                await ws.ConnectAsync(uri, new CancellationToken());
-                            }
-                            else
-                            {
-                                // Get Crypto Price as double
-                                var price = json["data"]["price"].ToObject<double>();
-                                // Get Crypto Name as string
-                                var key = json["channel"].ToString().Replace("live_trades_", "");
-
-                                // If cryptoCurrencies doesn't contains Crypto Name
-                                if (!cryptoCurrencies.ContainsKey(key))
+                                do
                                 {
-                                    // Add Crypto to Dictionary
-                                    cryptoCurrencies.Add(key, new Crypto() { cryptoName = key, price = price });
-                                    continue;
-                                }
+                                    // Receive replie
+                                    result = await ws.ReceiveAsync(buffer, CancellationToken.None);
 
-                                // Update Crypto
-                                cryptoCurrencies[key] = new Crypto() { cryptoName = key, price = price };
-                            }                           
+                                    // Save to Memory Stream
+                                    ms.Write(buffer.Array, buffer.Offset, buffer.Count);
+                                }
+                                while (!result.EndOfMessage);
+
+                                // Set index 0 as MS position
+                                ms.Seek(0, SeekOrigin.Begin);
+                                using (var reader = new StreamReader(ms, Encoding.UTF8))
+                                {
+                                    // Parse data to JObject
+                                    JObject json = JsonConvert.DeserializeObject<JObject>(reader.ReadToEnd());
+
+                                    // More info about Events in the documentation: https://www.bitstamp.net/websocket/v2/
+                                    if (json["event"].ToString() == "bts:subscription_succeeded")
+                                    {
+                                        await LoggingService.Log(threadName, $"Subscribed to {json["channel"]}");
+                                    }
+                                    else if (json["event"].ToString() == "bts:request_reconnect")
+                                    {
+                                        await LoggingService.Log(threadName, "Reconnect requested");
+
+                                        // Close WS Connection
+                                        await ws.CloseAsync(new WebSocketCloseStatus(), "", new CancellationToken());
+
+                                        // Wait 5s
+                                        Thread.Sleep(5000);
+
+                                        // Connect to WS
+                                        await ws.ConnectAsync(uri, new CancellationToken());
+                                    }
+                                    else
+                                    {
+                                        // Get Crypto Price as double
+                                        var price = json["data"]["price"].ToObject<double>();
+                                        // Get Crypto Name as string
+                                        var key = json["channel"].ToString().Replace("live_trades_", "");
+
+                                        // If cryptoCurrencies doesn't contains Crypto Name
+                                        if (!cryptoCurrencies.ContainsKey(key))
+                                        {
+                                            // Add Crypto to Dictionary
+                                            cryptoCurrencies.Add(key, new Crypto() { cryptoName = key, price = price });
+                                            continue;
+                                        }
+
+                                        // Update Crypto
+                                        cryptoCurrencies[key] = new Crypto() { cryptoName = key, price = price };
+                                    }
+                                }
+                            }
                         }
                     }
+                    catch
+                    {
+                        // If an error occurred - start all over
+                        continue;
+                    }
                 }
-
             });
             cryptoThread.Name = "Crypto";
             cryptoThread.Start();
@@ -122,7 +132,8 @@ namespace Discord_Bot.Modules
         {
             // Get Instance of cryptoCurrencies
             // (so it doesn't change while we run this function)
-            var currentCrypto = cryptoCurrencies;
+            var currentCrypto = cryptoCurrencies.OrderBy(x => x.Value.price).Reverse().ToDictionary(x => x.Key, x => x.Value);
+
             // If no Crypto info is found
             if (currentCrypto.Count == 0)
                 return await EmbedHandler.CreateErrorEmbed("Crypto, Information", $"We are waiting for the information. Please try again later!");

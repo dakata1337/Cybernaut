@@ -138,7 +138,7 @@ namespace Discord_Bot.Handlers
             var config = GetGuildConfig(context.Guild);
 
             // Get Guild Prefix from Config
-            string oldPrefix = config.prefix;
+            string oldPrefix = config.Prefix;
 
             // If the Selected Prefix is already the Prefix
             if (oldPrefix == newPrefix)
@@ -170,7 +170,7 @@ namespace Discord_Bot.Handlers
             var guildConfig = GetGuildConfig(context.Guild);
 
             // Get Whitelisted Channel
-            List<ulong> whitelistedChannels = guildConfig.whitelistedChannels;
+            List<ulong> whitelistedChannels = guildConfig.WhitelistedChannels;
 
             switch (arg)
             {
@@ -296,22 +296,22 @@ namespace Discord_Bot.Handlers
                     while (data_reader.Read())
                     {
                         // Set Prefix
-                        guildConfig.prefix = data_reader.GetValue(1).ToString();
+                        guildConfig.Prefix = data_reader.GetValue(1).ToString();
 
                         // Whitelisted channels are saved as string
                         // All Channel IDs are separated by ';'
-                        guildConfig.whitelistedChannels = Array.ConvertAll(data_reader.GetValue(2).ToString().Split(';'), ulong.Parse).ToList();
+                        guildConfig.WhitelistedChannels = Array.ConvertAll(data_reader.GetValue(2).ToString().Split(';'), ulong.Parse).ToList();
 
                         // Set isLooping
-                        guildConfig.isLooping = (bool)data_reader.GetValue(3);
+                        guildConfig.IsLooping = (bool)data_reader.GetValue(3);
 
                         // Get last used Volume
-                        guildConfig.volume = (int)data_reader.GetValue(4);
+                        guildConfig.Volume = (int)data_reader.GetValue(4);
 
                         // Get All Playlists
                         var playlistData = data_reader.GetValue(5);
                         if (!playlistData.Equals(DBNull.Value))
-                            guildConfig.playlists = (JArray)JsonConvert.DeserializeObject((string)playlistData);
+                            guildConfig.Playlists = (JArray)JsonConvert.DeserializeObject((string)playlistData);
                     }
                 }
             }

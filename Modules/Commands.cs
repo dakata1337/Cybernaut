@@ -38,7 +38,7 @@ namespace Discord_Bot.Modules
 
                 embedBuilder.AddField(command.Name, string.Join("\n", new string[] { 
                     command.Summary ?? "No description available\nUsage:",
-                    $"```{guildConfig.prefix}{command.Name.ToLower()} {(string.Join(' ', command.Parameters) ?? string.Empty)}```"}));
+                    $"```{guildConfig.Prefix}{command.Name.ToLower()} {(string.Join(' ', command.Parameters) ?? string.Empty)}```"}));
             }
 
             await ReplyAsync(
@@ -112,7 +112,7 @@ namespace Discord_Bot.Modules
         public async Task Leave() =>
             await ReplyAsync(embed: await _music.LeaveAsync(Context));
 
-        [Command("Play")]
+        [Command("Play", RunMode = RunMode.Async)]
         [Alias("p")]
         public async Task Play([Remainder] string songNameOrURL) =>
             await ReplyAsync(embed: await _music.PlayAsync(Context, songNameOrURL, false)); // False = Add to queue 
@@ -157,10 +157,20 @@ namespace Discord_Bot.Modules
         public async Task Loop(string arg = null) =>
             await ReplyAsync(embed: await _music.LoopAsync(Context, arg));
 
+        [Command("Shuffle")]
+        [Alias("sh")]
+        public async Task Shuffle() =>
+            await ReplyAsync(embed: await _music.ShuffleAsync(Context));
+
         [Command("Seek")]
         [Alias("s")]
         public async Task Seek(string seekTo) =>
             await ReplyAsync(embed: await _music.SeekAsync(Context, seekTo));
+
+        [Command("Playlist", RunMode = RunMode.Async)]
+        [Alias("pl")]
+        public async Task Playlist(string command, string playlistName = null, string modifier = null, [Remainder]string query = null) =>
+            await ReplyAsync(embed: await _music.PlaylistAsync(Context, command, playlistName, modifier, query));
         #endregion
 
         #region Cryptocurrency Commands

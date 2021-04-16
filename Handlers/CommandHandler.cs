@@ -75,15 +75,15 @@ namespace Discord_Bot.Handlers
                 return Task.CompletedTask;
 
             // If the message doesnt have prefix - return
-            if (!message.HasStringPrefix(guildConfig.prefix, ref argPos))
+            if (!message.HasStringPrefix(guildConfig.Prefix, ref argPos))
                 return Task.CompletedTask;
 
             // If the message is only the prefix - return
-            if (message.Content == guildConfig.prefix)
+            if (message.Content == guildConfig.Prefix)
                 return Task.CompletedTask;
 
             // If Context Channel is Whitelisted - Execute
-            if (guildConfig.whitelistedChannels.Contains(context.Channel.Id))
+            if (guildConfig.WhitelistedChannels.Contains(context.Channel.Id))
                 return _commands.ExecuteAsync(context, argPos, _services, MultiMatchHandling.Best);
 
             return Task.CompletedTask;

@@ -1,17 +1,37 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Discord;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Victoria;
 
 namespace Discord_Bot.DataStrucs
 {
     public class GuildConfig
     {
-        public string prefix { get; set; }
-        public List<ulong> whitelistedChannels { get; set; }
-        public bool isLooping { get; set; }
-        public int volume { get; set; }
-        public JArray playlists { get; set; }
+        public string Prefix { get; set; }
+        public List<ulong> WhitelistedChannels { get; set; }
+        public bool IsLooping { get; set; }
+        public int Volume { get; set; }
+        public JArray Playlists { get; set; }
+    }
+
+    public class Playlist
+    {
+        public string Name;
+        public List<Song> Tracks;
+    }
+
+    public class Song
+    {
+        public string Name;
+        public string Url;
+    }
+
+    public class TrackRequest
+    {
+        public Embed Embed;
+        public LavaTrack Track;
     }
 
     public class BotConfig
