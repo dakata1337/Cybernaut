@@ -56,6 +56,7 @@ namespace Discord_Bot.Modules
 
             // Determine which channel to join
             IVoiceChannel channel = (voiceChannel == null ? userVState.VoiceChannel : voiceChannel);
+            // Join VC
             await _lavaNode.JoinAsync(channel, context.Channel as ITextChannel);
 
             // Return Successful Embed
@@ -103,7 +104,7 @@ namespace Discord_Bot.Modules
         {
             string embedTitle = "Music, Play";
 
-            var checkResult = MusicChecks(context, embedTitle).Result;
+            var checkResult = MusicChecks(context, embedTitle, true).Result;
             if (checkResult != null)
                 return checkResult;
 
@@ -518,31 +519,55 @@ namespace Discord_Bot.Modules
         #region PlaylistAsync
 
         #region CommandSelection
+        /// <summary>
+        /// Load all Playlist functions
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> PlaylistAsync(SocketCommandContext context, string command, string playlistName, string modifier, string query)
         {
             string embedTitle = "Music, Playlist";
+            // Checks if User is in the same channel as the Bot
             var checkResult = MusicChecks(context, embedTitle).Result;
             if (checkResult != null)
                 return checkResult;
 
-            // Check if playlist name contains illegal characters
+            // Checks if playlist name contains illegal characters
             if (!Regex.IsMatch(playlistName != null ? playlistName : "null", @"^[a-zA-Z0-9_]+$"))
                 return await EmbedHandler.CreateErrorEmbed(embedTitle, "Playlist name contains illegal characters!");
 
             switch (command.ToLower())
             {
                 case "load":
+                    #region Load Playlist
+                    if (playlistName == null)
+                        return await EmbedHandler.CreateErrorEmbed(embedTitle, "No playlist specified!");
                     return await LoadPlaylistAsync(context, playlistName, embedTitle);
+                    #endregion
                 case "show":
+                    #region Show Playlist/s
                     return await ShowPlaylistsAsync(context, playlistName, embedTitle);
+                    #endregion
                 case "modify":
+                    #region Modify Playlist
+                    if (playlistName == null)   return await EmbedHandler.CreateErrorEmbed(embedTitle, "No playlist specified!");
+                    else if (modifier == null)  return await EmbedHandler.CreateErrorEmbed(embedTitle, "No modifier specified!");
+                    else if (query == null)     return await EmbedHandler.CreateErrorEmbed(embedTitle, "No track specified!");
+
                     if (modifier.ToLower() == "add") return await AddPlaylistTrack(context, playlistName, query, embedTitle);
                     else if (modifier.ToLower() == "remove") return await RemovePlaylistTrack(context, playlistName, query, embedTitle);
                     else return await EmbedHandler.CreateErrorEmbed(embedTitle, $"{modifier} isn't a valid argument!");
+                    #endregion
                 case "create":
+                    #region Create Playlist
+                    if (playlistName == null)
+                        return await EmbedHandler.CreateErrorEmbed(embedTitle, "No playlist specified!");
                     return await CreatePlaylistAsync(context, playlistName, embedTitle);
+                    #endregion
                 case "remove":
+                    #region Remove Playlist
+                    if (playlistName == null)
+                        return await EmbedHandler.CreateErrorEmbed(embedTitle, "No playlist specified!");
                     return await RemovePlaylistAsync(context, playlistName, embedTitle);
+                    #endregion
                 default:
                     return await EmbedHandler.CreateErrorEmbed(embedTitle, $"{command} is not a valid argument!");
             }
@@ -550,6 +575,10 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region CreatePlaylistAsync
+        /// <summary>
+        /// Creates new playlist with specified name
+        /// </summary>
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> CreatePlaylistAsync(SocketCommandContext context, string playlistName, string embedTitle)
         {
             // Get Guild Config
@@ -580,6 +609,10 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region RemovePlaylistAsync
+        /// <summary>
+        /// Removes specified playlist
+        /// </summary>
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> RemovePlaylistAsync(SocketCommandContext context, string playlistName, string embedTitle)
         {
             // Get Guild Config
@@ -610,6 +643,10 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region ShowPlaylistsAsync
+        /// <summary>
+        /// Show all/specified playlist/s
+        /// </summary>
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> ShowPlaylistsAsync(SocketCommandContext context, string playlistName, string embedTitle)
         {
             // Get Guild Config
@@ -675,6 +712,10 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region LoadPlaylistAsync
+        /// <summary>
+        /// Loads specified playlist
+        /// </summary>
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> LoadPlaylistAsync(SocketCommandContext context, string playlistName, string embedTitle)
         {
             // Get Guild Config
@@ -720,6 +761,10 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region AddPlaylistTrack
+        /// <summary>
+        /// Adds Track to specfied playlist
+        /// </summary>
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> AddPlaylistTrack(SocketCommandContext context, string playlistName, string query, string embedTitle)
         {
             // Get Guild Config
@@ -743,6 +788,10 @@ namespace Discord_Bot.Modules
                 // Get Track
                 var searchResult = SearchTrackAsync(context, query, guildConfig, embedTitle).Result;
 
+                // If an error occurred
+                if (searchResult.Embed != null)
+                    return searchResult.Embed;
+
                 // Add Track to playlist
                 playlist.Tracks.Add(new Song() { Name = searchResult.Track.Title, Url = searchResult.Track.Url });
 
@@ -757,6 +806,10 @@ namespace Discord_Bot.Modules
         #endregion
 
         #region RemovePlaylistTrack
+        /// <summary>
+        /// Removes Track from specified playlist
+        /// </summary>
+        /// <returns>Discord.Embed</returns>
         public async Task<Embed> RemovePlaylistTrack(SocketCommandContext context, string playlistName, string query, string embedTitle)
         {
             // Get Guild Config
@@ -948,19 +1001,26 @@ namespace Discord_Bot.Modules
         /// <param name="context">Command context</param>
         /// <param name="embedTitle">Embed title</param>
         /// <returns>Discord.Embed</returns>
-        private async Task<Embed> MusicChecks(SocketCommandContext context, string embedTitle)
+        private async Task<Embed> MusicChecks(SocketCommandContext context, string embedTitle, bool joinVC = false)
         {
             // If a connection to Lavalink was made
             if (!_lavaNode.IsConnected)
                 return await EmbedHandler.CreateErrorEmbed(embedTitle, "We are experiencing problems with the Music Library!\nPlease report this to the Developers.");
 
-            // Check if Guild Has Player
-            if (!_lavaNode.HasPlayer(context.Guild))
-                return await EmbedHandler.CreateErrorEmbed(embedTitle, "I'm not connected to a voice channel!");
-
             // Check if User is in a VC
             if ((context.User as IVoiceState).VoiceChannel == null)
                 return await EmbedHandler.CreateErrorEmbed(embedTitle, "You can't use this command because you aren't in a Voice Channel!");
+
+            // Check if Guild Has Player
+            if (!_lavaNode.HasPlayer(context.Guild))
+            {
+                if (joinVC)
+                {
+                    await JoinAsync(context, context.Guild.GetUser(context.User.Id).VoiceChannel);
+                    return null;
+                }
+                return await EmbedHandler.CreateErrorEmbed(embedTitle, "I'm not connected to a voice channel!");
+            }
 
             // Check if User is in same VC as Bot
             if (_lavaNode.GetPlayer(context.Guild).VoiceChannel.Id != (context.User as IVoiceState).VoiceChannel.Id)
