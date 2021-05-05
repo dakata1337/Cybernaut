@@ -24,6 +24,7 @@ namespace Discord_Bot
         private LavaNode _lavaNode;
         private Music _music;
         private CryptoModule _cryptoModule;
+        private OLXModule _olxModule;
         public DiscordService()
         {
             // Initialize Logger
@@ -52,6 +53,7 @@ namespace Discord_Bot
             _lavaNode = _services.GetRequiredService<LavaNode>();
             _music = _services.GetRequiredService<Music>();
             _cryptoModule = _services.GetRequiredService<CryptoModule>();
+            _olxModule = _services.GetRequiredService<OLXModule>();
         }
 
         private void SubscribeDiscordEvents()
@@ -60,6 +62,7 @@ namespace Discord_Bot
             _client.Ready += OnClientReady;
             _client.JoinedGuild += _guildConfigHandler.JoinedGuild;
             _client.LeftGuild += _guildConfigHandler.LeftGuild;
+            _client.UserVoiceStateUpdated += _music.VoiceStateUpdated;
         }
 
         private void SubscribeVictoriaEvents()
@@ -81,6 +84,8 @@ namespace Discord_Bot
 
             // Initialize Crypto Module
             await _cryptoModule.Initialize();
+
+            await _olxModule.InitializeAsync();
 
             // Connect Discord Client
             await ClientConnect();
@@ -127,6 +132,7 @@ namespace Discord_Bot
                 .AddSingleton<Music>()
                 .AddSingleton<InteractivityService>()
                 .AddSingleton<CryptoModule>()
+                .AddSingleton<OLXModule>()
                 .BuildServiceProvider();
         }
     }

@@ -12,7 +12,7 @@ namespace Discord_Bot.Handlers
         /// <summary>
         /// Creates Basic Discord Embed. 
         /// </summary>
-        public static async Task<Embed> CreateBasicEmbed(string title, string description, string? imageUrl = null, Color? color = null)
+        public static async Task<Embed> CreateBasicEmbed(string title, string description, string? imageUrl = null, Color? color = null, DateTime? timestamp = null)
         {
             // Here you can specifie your default embed color
             Color defaultColor = Color.DarkTeal;
@@ -22,7 +22,7 @@ namespace Discord_Bot.Handlers
                 Title = title,
                 Description = description,
                 Color = color == null ? defaultColor : (Color)color,
-                Timestamp = DateTime.Now,
+                Timestamp = timestamp == null ? DateTime.Now : timestamp,
                 ImageUrl = imageUrl
             };
             return embed.Build();

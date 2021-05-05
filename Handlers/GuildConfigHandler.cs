@@ -190,7 +190,7 @@ namespace Discord_Bot.Handlers
                     whitelistedChannels.Add(channel.Id);
 
                     // Update Config
-                    UpdateGuildConfig(context.Guild, "whitelistedChannel", $"{string.Join(';', whitelistedChannels)}");
+                    UpdateGuildConfig(context.Guild, "whitelistedChannels", $"{string.Join(';', whitelistedChannels)}");
 
                     return await EmbedHandler.CreateBasicEmbed("Configuration Changed.", $"{context.Guild.GetChannel(channel.Id)} was whitelisted.");
                 #endregion
@@ -218,7 +218,7 @@ namespace Discord_Bot.Handlers
                     whitelistedChannels.Remove(channel.Id);
 
                     // Update Config
-                    UpdateGuildConfig(context.Guild, "whitelistedChannel", $"{string.Join(';', whitelistedChannels)}");
+                    UpdateGuildConfig(context.Guild, "whitelistedChannels", $"{string.Join(';', whitelistedChannels)}");
 
                     return await EmbedHandler.CreateBasicEmbed("Configuration Changed.", $"{context.Guild.GetChannel(channel.Id)} was removed from the whitelist.");
                 #endregion
@@ -249,7 +249,7 @@ namespace Discord_Bot.Handlers
             var sqlCommands = new string[]
             {
                 $"INSERT INTO Guilds VALUES('{guild.Id}')",
-                $"INSERT INTO GuildConfigurable VALUES ('{guild.Id}', '{GlobalData.Config.defaultPrefix}', '{guild.DefaultChannelId}')"
+                $"INSERT INTO GuildConfigurable (guildId, prefix, whitelistedChannels, volume) VALUES ('{guild.Id}', '{GlobalData.Config.defaultPrefix}', '{guild.DefaultChannelId}', '100')"
             };
             // Send SQL query
             foreach (var sql in sqlCommands)
@@ -257,6 +257,7 @@ namespace Discord_Bot.Handlers
                 using (var cmd = new MySqlCommand(sql, _connection))
                 {
                     cmd.ExecuteNonQuery();
+                    cmd.Dispose();
                 }
             }
         }
@@ -277,6 +278,7 @@ namespace Discord_Bot.Handlers
                 using (var cmd = new MySqlCommand(sql, _connection))
                 {
                     cmd.ExecuteNonQuery();
+                    cmd.Dispose();
                 }
             }
         }
@@ -313,6 +315,7 @@ namespace Discord_Bot.Handlers
                         if (!playlistData.Equals(DBNull.Value))
                             guildConfig.Playlists = (JArray)JsonConvert.DeserializeObject((string)playlistData);
                     }
+                    data_reader.Dispose();
                 }
             }
             // Return Config
@@ -328,6 +331,7 @@ namespace Discord_Bot.Handlers
             using (var cmd = new MySqlCommand(command, _connection))
             {
                 cmd.ExecuteNonQuery();
+                cmd.Dispose();
             }
         }
         #endregion
@@ -335,7 +339,7 @@ namespace Discord_Bot.Handlers
         #region Guild Has Config
         public static bool GuildHasConfig(IGuild guild)
         {
-            var command = $"SELECT EXISTS(SELECT * FROM GuildConfigurable WHERE guildID = '{guild.Id}')";
+            var command = $"SELECT EXISTS(SELECT * FROM Guilds WHERE guildID = '{guild.Id}')";
             // Send SQL query
             using (var cmd = new MySqlCommand(command, _connection))
             {
@@ -348,6 +352,7 @@ namespace Discord_Bot.Handlers
                         if (data_reader.GetValue(0).ToString() == "1")
                             return true;
                     }
+                    data_reader.Dispose();
                 }
             }
             return false;

@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
 using Discord_Bot.DataStrucs;
 using Discord_Bot.Handlers;
 using Interactivity;
@@ -26,10 +27,12 @@ namespace Discord_Bot.Modules
     {
         private readonly LavaNode _lavaNode;
         private InteractivityService _interactivityService;
+        private DiscordSocketClient _client;
         public Music(IServiceProvider serviceProvider)
         {
             _lavaNode = serviceProvider.GetRequiredService<LavaNode>();
             _interactivityService = serviceProvider.GetRequiredService<InteractivityService>();
+            _client = serviceProvider.GetRequiredService<DiscordSocketClient>();
         }
 
         #region JoinAsync
@@ -194,6 +197,9 @@ namespace Discord_Bot.Modules
             // Get Guild Player
             var player = _lavaNode.GetPlayer(context.Guild);
 
+            // Get Guild Config
+            GlobalData.GuildConfigs.TryGetValue(context.Guild.Id, out GuildConfig guildConfig);
+
             // If Queue is empty - call StopAsync()
             if (player.Queue.Count == 0)
                 return await StopAsync(context, embedTitle);
@@ -207,7 +213,7 @@ namespace Discord_Bot.Modules
             // Return Successful Embed
             return await EmbedHandler.CreateBasicEmbed(embedTitle,
                 $"I have successfully skiped **[{currentTrack.Title}]({currentTrack.Url})**.\n" +
-                $"Now playing: **[{player.Track.Title}]({player.Track.Url})**.");
+                $"Now {(guildConfig.IsLooping ? "looping" : "playing")}: **[{player.Track.Title}]({player.Track.Url})**.");
         }
         #endregion
 
@@ -945,7 +951,7 @@ namespace Discord_Bot.Modules
             await player.PlayAsync(track);
 
             // Return Successful Embed
-            return await EmbedHandler.CreateBasicEmbed(embedTitle, $"Now playing **[{track.Title}]({track.Url})**");
+            return await EmbedHandler.CreateBasicEmbed(embedTitle, $"Now {(guildConfig.IsLooping ? "looping" : "playing")} **[{track.Title}]({track.Url})**");
         }
         #endregion
 
@@ -990,7 +996,20 @@ namespace Discord_Bot.Modules
             // Return Successful Embed
             await args.Player.TextChannel.SendMessageAsync(
                 embed: await EmbedHandler.CreateBasicEmbed(embedTitle, $"**[{endedTrack.Title}]({endedTrack.Url})** finished playing.\n" +
-                $"Now playing: **[{track.Title}]({track.Url})**"));
+                $"Now {(guildConfig.IsLooping ? "looping" : "playing")}: **[{track.Title}]({track.Url})**"));
+        }
+        #endregion
+
+        #region VoiceStateUpdated
+        public async Task VoiceStateUpdated(SocketUser arg1, SocketVoiceState arg2, SocketVoiceState arg3)
+        {
+            var guild = arg2.VoiceChannel != null ? arg2.VoiceChannel.Guild ?? null : null;
+            if (arg1.Id != _client.CurrentUser.Id || arg3.VoiceChannel != null || (guild != null && !_lavaNode.HasPlayer(guild)))
+                return;
+
+            // Dispose Player
+            var guildPlayer = _lavaNode.GetPlayer(guild);
+            await guildPlayer.DisposeAsync();
         }
         #endregion
 
