@@ -127,7 +127,7 @@ namespace Discord_Bot.Modules
             checkThread.IsBackground = true;
             checkThread.Start();
 
-            await LoggingService.Log(Source, $"{Source} initialized");
+            LoggingService.Log(Source, $"{Source} initialized");
         }
 
         #region GetLatestAds
@@ -136,7 +136,7 @@ namespace Discord_Bot.Modules
             try
             {
                 string cleanUrl = url.Substring(0, url.IndexOf('?'));
-                // await LoggingService.Log(Source, $"Starting to look for new ads ({cleanUrl})", ConsoleColor.Cyan);
+                // LoggingService.Log(Source, $"Starting to look for new ads ({cleanUrl})", ConsoleColor.Cyan);
 
                 // Ads location
                 string listSales = "//tr[@class='wrap']/td/div/table/tbody";
@@ -278,12 +278,12 @@ namespace Discord_Bot.Modules
                     page++;
                     #endregion
                 }
-                await LoggingService.Log(Source, $"Ad wasnt found! Defaulting to latest ad.", ConsoleColor.Red);
+                LoggingService.Log(Source, $"Ad wasnt found! Defaulting to latest ad.", ConsoleColor.Red);
                 return new AdSearchResult() { Url = cleanUrl, LatestAdUrl = backupAd.Url, Ads = new List<AdInfo>() { backupAd } };
             }
             catch (Exception e)
             {
-                await LoggingService.Log(Source, e.ToString());
+                LoggingService.Log(Source, e.ToString());
                 return new AdSearchResult();
             }
         }
@@ -308,7 +308,7 @@ namespace Discord_Bot.Modules
                 }
                 catch (Exception e)
                 {
-                    await LoggingService.Log(Source, $"Error: {e.ToString()}\n" +
+                    LoggingService.Log(Source, $"Error: {e.ToString()}\n" +
                         $"occurred while trying to load url: {url}\n");
                     continue;
                 }
@@ -359,7 +359,7 @@ namespace Discord_Bot.Modules
             }
             catch (Exception e)
             {
-                await LoggingService.Log(Source, $"Error: {e.ToString()}\noccurred while trying to truncate description of: {url}");
+                LoggingService.Log(Source, $"Error: {e.ToString()}\noccurred while trying to truncate description of: {url}");
                 return "Error!!";
             }
         }

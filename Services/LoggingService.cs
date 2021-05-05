@@ -56,7 +56,7 @@ namespace Discord_Bot.Services
         /// <param name="source">Log source</param>
         /// <param name="message">Log message</param>
         /// <param name="color">Log color</param>
-        public static async Task Log(string source, string message, ConsoleColor color = ConsoleColor.Cyan)
+        public static void Log(string source, string message, ConsoleColor color = ConsoleColor.Cyan)
         {
             logQueue.Add(new Log()
             {
@@ -64,7 +64,6 @@ namespace Discord_Bot.Services
                 Message = message,
                 ConsoleColor = color
             });
-            await Task.CompletedTask;
         }
 
         /// <summary>
