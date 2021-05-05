@@ -77,11 +77,11 @@ namespace Discord_Bot.Modules
                                     // More info about Events in the documentation: https://www.bitstamp.net/websocket/v2/
                                     if (json["event"].ToString() == "bts:subscription_succeeded")
                                     {
-                                        await LoggingService.Log(threadName, $"Subscribed to {json["channel"]}");
+                                        LoggingService.Log(threadName, $"Subscribed to {json["channel"]}");
                                     }
                                     else if (json["event"].ToString() == "bts:request_reconnect")
                                     {
-                                        await LoggingService.Log(threadName, "Reconnect requested");
+                                        LoggingService.Log(threadName, "Reconnect requested");
 
                                         // Close WS Connection
                                         await ws.CloseAsync(new WebSocketCloseStatus(), "", new CancellationToken());
@@ -123,7 +123,7 @@ namespace Discord_Bot.Modules
             });
             cryptoThread.Name = "Crypto";
             cryptoThread.Start();
-            await LoggingService.Log(cryptoThread.Name, "Crypto module initialized");
+            LoggingService.Log(cryptoThread.Name, "Crypto module initialized");
 
             return Task.CompletedTask;
         }
